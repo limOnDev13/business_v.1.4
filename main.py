@@ -65,7 +65,7 @@ def calculate_end_date_of_month(startDate):
 
 
 def draw_line(start, end, step, current):
-    amount = int((end - start) / step)
+    amount = int((end - start) / step) + 1
     percent = current / amount * 100
     print(int(percent), '%')
 
@@ -289,22 +289,19 @@ class Pool():
     # массив кормежек
     feeding = list()
     # масса товарной рыбы
-    massComercialFish = 350
+    massComercialFish = 400
     # цена рыбы
     price = 1000
     # индекс зарыбления
     indexFry = 0
-    # начальная масса зарыбления
-    startMass = 0
     procentOnDepreciationEquipment = 10
     poolHistory = list()
 
 
-    def __init__(self, square, startMass, singleVolumeFish=100, price=850,
-                 massComercialFish=350,
+    def __init__(self, square, singleVolumeFish=100, price=850,
+                 massComercialFish=400,
                  maximumPlantingDensity=40):
         self.square = square
-        self.startMass = startMass
         self.massComercialFish = massComercialFish
         self.maxPlantingDensity = maximumPlantingDensity
         self.singleVolumeFish = singleVolumeFish
@@ -388,8 +385,56 @@ class Pool():
 class Opimization():
     _dllArrayFish = 0
     _dllPool = 0
+    masses = list()
+    mainVolueFish = 0
+    amountModules = 2
+    amountPools = 4
+    poolSquare = 10
+    correctionFactor = 2
+    feedPrice = 260
+    workerSalary = 40000
+    amountWorkers = 2
+    cwsdCapacity = 5.5
+    electricityCost = 3.17
+    rent = 100000
+    costCWSD = 3000000
+    depreciationReservePercent = 7.5
+    expansionReservePercent = 7.5
+    credit = 500000
+    annualPercentage = 15
+    amountCreditMonth = 12
+    grant = 5000000
+    fishPrice = 850
+    massCommercialFish = 400
 
-    def __init__(self):
+    def __init__(self, masses, mainVolueFish, amountModules=2, amountPools=4,
+            poolSquare=10, correctionFactor=2, feedPrice=260,
+            workerSalary=40000, amountWorkers=2, cwsdCapacity=5.5,
+            electricityCost=3.17, rent=100000, costCWSD=3000000, depreciationReservePercent=7.5,
+            expansionReservePercent=7.5, credit=500000, annualPercentage=15, amountCreditMonth=12,
+            grant=5000000, fishPrice=850, massCommercialFish=400):
+        self.masses = masses
+        self.amountModules = amountModules
+        self.amountPools = amountPools
+        self.poolSquare = poolSquare
+        self.correctionFactor = correctionFactor
+        self.feedPrice = feedPrice
+        self.workerSalary = workerSalary
+        self.amountWorkers = amountWorkers
+        self.cwsdCapacity = cwsdCapacity
+        self.electricityCost = electricityCost
+        self.rent = rent
+        self.costCWSD = costCWSD
+        self.depreciationReservePercent = depreciationReservePercent
+        self.expansionReservePercent = expansionReservePercent
+        self.credit = credit
+        self.annualPercentage = annualPercentage
+        self.amountCreditMonth = amountCreditMonth
+        self.grant = grant
+        self.fishPrice = fishPrice
+        self.massCommercialFish = massCommercialFish
+        self.mainVolueFish = mainVolueFish
+
         self._dllPool = WinDLL("D:/github/buisnessPlan_v1.2.1/buisnessPlan_v1.2/dllPool/x64/Debug/dllPool.dll")
         self._dllArrayFish = WinDLL('D:/github/business_v1.3/Project1/x64/Debug/dllArrayFish.dll')
 
@@ -444,15 +489,20 @@ class Opimization():
 
         return currentMass
 
-    def calculate_optimal_deltaMass(self, masses, startDelta, step, endDelta, startDate, endDate):
+    def calculate_optimal_deltaMass(self, startDelta, step, endDelta, startDate, endDate, minMass, maxMass):
         delta = startDelta
         max = 0
         result = delta
         encounter = 1
         while (delta <= endDelta):
-            cwsd = CWSD(masses, 2, 4, 10, 2, 260, 40000, 2, 5.5, 3.17, 70000, 3000000, 10, 18)
-            cwsd.work_cwsd(startDate, endDate, 50, delta)
-            x = cwsd.calculate_result_business_plan(startDate, endDate)
+            cwsd = CWSD(self.masses, self.mainVolueFish, self.amountModules, self.amountPools,
+                        self.poolSquare, self.correctionFactor, self.feedPrice,
+                        self.workerSalary, self.amountWorkers, self.cwsdCapacity,
+                        self.electricityCost, self.rent, self.costCWSD, self.depreciationReservePercent,
+                        self.expansionReservePercent, self.credit, self.annualPercentage, self.amountCreditMonth,
+                        self.grant, self.fishPrice, self.massCommercialFish)
+            cwsd.work_cwsd(startDate, endDate, 50, delta, minMass, maxMass)
+            x = cwsd.calculate_result_business_plan(startDate, endDate, 100000)
             if (max < x):
                 max = x
                 result = delta
@@ -462,16 +512,20 @@ class Opimization():
             encounter += 1
         return [result, max]
 
-    def calculate_optimal_credit(self, masses, startCredit, step, endCredit, startDate, endDate):
+    def calculate_optimal_credit(self, startCredit, step, endCredit, startDate, endDate, minMass, maxMass):
         credit = startCredit
         min = 0
         result = credit
         encounter = 1
         while (credit <= endCredit):
-            cwsd = CWSD(masses, 2, 4, 10, 2, 260, 40000, 2, 5.5, 3.17, 70000, 3000000,
-                        7.5, 7.5, credit, 15, 12, 9 * credit)
-            cwsd.work_cwsd(startDate, endDate, 50, 50)
-            cwsd.calculate_result_business_plan(startDate, endDate)
+            cwsd = CWSD(self.masses, self.mainVolueFish, self.amountModules, self.amountPools,
+                        self.poolSquare, self.correctionFactor, self.feedPrice,
+                        self.workerSalary, self.amountWorkers, self.cwsdCapacity,
+                        self.electricityCost, self.rent, self.costCWSD, self.depreciationReservePercent,
+                        self.expansionReservePercent, self.credit, self.annualPercentage, self.amountCreditMonth,
+                        self.grant, self.fishPrice, self.massCommercialFish)
+            cwsd.work_cwsd(startDate, endDate, 50, 50, minMass, maxMass)
+            cwsd.calculate_result_business_plan(startDate, endDate, 100000)
             x = cwsd.find_minimal_budget()
             if ((x > 0) and (x > min)):
                 min = x
@@ -481,6 +535,75 @@ class Opimization():
             encounter += 1
             credit += step
         return [result, min]
+
+    def calculate_max_cost_one_module_business(self, startDate, endDate,
+                                                   amountSteps, costCWSD, grant,
+                                               credit, amountCreditMonth, minMass, maxMass):
+        maxCost = 0
+        averageCost = 0
+        for i in range(amountSteps):
+            cwsd = CWSD(self.masses, self.mainVolueFish, self.amountModules, self.amountPools,
+                        self.poolSquare, self.correctionFactor, self.feedPrice,
+                        self.workerSalary, self.amountWorkers, self.cwsdCapacity,
+                        self.electricityCost, self.rent, self.costCWSD, self.depreciationReservePercent,
+                        self.expansionReservePercent, self.credit, self.annualPercentage, self.amountCreditMonth,
+                        self.grant, self.fishPrice, self.massCommercialFish)
+            cwsd.work_cwsd(startDate, endDate, 50, 50, minMass, maxMass)
+            cwsd.calculate_result_business_plan(date.date.today(), date.date(2028, 1, 1), 100000)
+            # эта величина покаывает, сколько мы затратим на био и тех - расходы
+            otherCosts = grant + credit - costCWSD - cwsd.find_minimal_budget()
+            # тогда стоимость запуска нового модуля
+            # (не включая кредиты, так как деньги будем брать и старого узв)
+            # составит
+            costOneModule = costCWSD + otherCosts - cwsd.monthlyPayment * amountCreditMonth
+            print(i, ' расчет, стоимость запуска:', costOneModule)
+            if (maxCost < costOneModule):
+                maxCost = costOneModule
+            averageCost += costOneModule
+        averageCost /= amountSteps
+        print()
+        print('Средняя стоимость запуска одного узв: ', averageCost)
+        print('Максимальная стоимость запуска одного узв: ', maxCost)
+
+    def _calculate_average_profit(self, startDate, endDate, amountSteps, reserve,
+                                  deltaMass, minMass, maxMass, limitSalary, masses,
+                                  mainVolueFish, amountModules=2, amountPools=4,
+                                  poolSquare=10, correctionFactor=2, feedPrice=260,
+                                  workerSalary=40000, amountWorkers=2, cwsdCapacity=5.5,
+                                  electricityCost=3.17, rent=100000, costCWSD=3000000, depreciationReservePercent=7.5,
+                                  expansionReservePercent=7.5, credit=500000, annualPercentage=15, amountCreditMonth=12,
+                                  grant=5000000, fishPrice=850, massCommercialFish=400):
+        result = 0
+        for i in range(amountSteps):
+            cwsd = CWSD(masses, mainVolueFish, amountModules, amountPools,
+                        poolSquare, correctionFactor, feedPrice,
+                        workerSalary, amountWorkers, cwsdCapacity,
+                        electricityCost, rent, costCWSD, depreciationReservePercent,
+                        expansionReservePercent, credit, annualPercentage, amountCreditMonth,
+                        grant, fishPrice, massCommercialFish)
+            cwsd.work_cwsd(startDate, endDate, reserve, deltaMass, minMass, maxMass)
+            x = cwsd.calculate_result_business_plan(startDate, endDate, limitSalary)
+            print(i, ' результат: ', x)
+            result += x
+
+        return result / amountSteps
+
+    def calculate_min_of_max_mass_fry(self, startDate, endDate, startMaxMass, step, endMaxMass):
+        maxMass = startMaxMass
+        max = 0
+        result = maxMass
+        encounter = 1
+        while (maxMass <= endMaxMass):
+            x = self._calculate_average_profit(startDate, endDate, 5, 50,
+                                               50, 20, maxMass, 100000, self.masses, self.mainVolueFish)
+            if (max < x):
+                max = x
+                result = maxMass
+            draw_line(startMaxMass, endMaxMass, step, encounter)
+            maxMass += step
+            print([maxMass, x])
+            encounter += 1
+        return [result, max]
 
 
 class Module():
@@ -500,17 +623,21 @@ class Module():
     correctionFactor = 2
     pools = list()
     poolsInfo = list()
+    masses = list()
 
 
-    def __init__(self, poolSquare, masses, amountPools=4, correctionFactor=2):
+    def __init__(self, poolSquare, masses, amountPools=4, correctionFactor=2, singleVolumeFish=100,
+                 fishPrice=850, massComercialFish=400, maximumPlantingDensity=40):
         self.onePoolSquare = poolSquare
         self.amountPools = amountPools
         self.correctionFactor = correctionFactor
+
         self.pools = list()
         self.poolsInfo = list()
+        self.masses = masses
 
         for i in range(amountPools):
-            pool = Pool(poolSquare, masses[i])
+            pool = Pool(poolSquare, singleVolumeFish, fishPrice, massComercialFish, maximumPlantingDensity)
             self.pools.append(pool)
 
     def add_biomass_in_pool(self, poolNumber, amountFishes, mass, newIndex, date):
@@ -547,7 +674,7 @@ class Module():
                 print('Рыбы нет')
         print('_______________________________________________________')
 
-    def find_optimal_fry_mass(self, minMass, deltaMass):
+    def find_optimal_fry_mass(self, minMass, maxMass, deltaMass):
         minAverageMass = 10000
         for i in range(self.amountPools):
             averageMassInThisPool = self.pools[i].arrayFishes.calculate_average_mass()
@@ -557,37 +684,35 @@ class Module():
         result = (int((minAverageMass - deltaMass) / 10)) * 10
         if (result < minMass):
             result = minMass
+        elif(result > maxMass):
+            result = maxMass
 
         return result
 
-    def find_empty_pool_and_add_one_volume(self, volumeFish, newIndex, day, deltaMass):
-        maxAverageMass = 0
+    def find_empty_pool_and_add_one_volume(self, volumeFish, newIndex, day, deltaMass, minMass, maxMass):
         emptyPool = 0
         for i in range(self.amountPools):
-            if ((self.pools[i].arrayFishes.get_amount_fishes() == 0) and
-                    (self.pools[i].startMass > maxAverageMass)):
-                maxAverageMass = self.pools[i].startMass
+            if (self.pools[i].arrayFishes.get_amount_fishes() == 0):
                 emptyPool = i
 
-        optimalMass = self.find_optimal_fry_mass(20, deltaMass)
+        optimalMass = self.find_optimal_fry_mass(minMass, maxMass, deltaMass)
         self.pools[emptyPool].add_new_biomass(volumeFish, optimalMass, newIndex, day)
 
-    def find_empty_pool_and_add_twice_volume(self, volumeFish, newIndex, day, koef, deltaMass):
+    def find_empty_pool_and_add_twice_volume(self, volumeFish, newIndex, day, koef, deltaMass, minMass, maxMass):
         emptyPool = 0
         for i in range(self.amountPools):
             if (self.pools[i].arrayFishes.get_amount_fishes() == 0):
                 emptyPool = i
                 break
 
-        optimalMass = self.find_optimal_fry_mass(20, deltaMass)
+        optimalMass = self.find_optimal_fry_mass(minMass, maxMass, deltaMass)
         self.pools[emptyPool].add_new_biomass(int(koef * volumeFish), optimalMass, newIndex, day)
 
-    def find_pool_with_twice_volume_and_move_half_in_empty(self, day):
+    def find_pool_with_twice_volume_and_move_half_in_empty(self):
         overflowingPool = 0
         emptyPool = 0
         maxAmount = 0
         volumeFish = 0
-        maxAverageMass = 0
         for i in range(self.amountPools):
             if (self.pools[i].arrayFishes.get_amount_fishes() > maxAmount):
                 overflowingPool = i
@@ -595,10 +720,8 @@ class Module():
 
             volumeFish = int(maxAmount / 2)
 
-            if ((self.pools[i].arrayFishes.get_amount_fishes() == 0) and
-                    (maxAverageMass < self.pools[i].startMass)):
+            if (self.pools[i].arrayFishes.get_amount_fishes() == 0):
                 emptyPool = i
-                maxAverageMass = self.pools[i].startMass
 
         self.move_fish_from_one_pool_to_another(overflowingPool, emptyPool, volumeFish)
 
@@ -657,20 +780,14 @@ class Module():
 
         return day
 
-    def start_script1(self, masses, reserve, startDate, koef, deltaMass):
-        optimization = Opimization()
-        optimalQuantity = optimization.calculate_optimized_amount_fish_in_commercial_pool(self.onePoolSquare,
-                                                                                          masses[self.amountPools - 1],
-                                                                                          masses[self.amountPools - 1],
-                                                                                          10, 10)
-        mainVolumeFish = optimalQuantity[0]
+    def start_script1(self, reserve, startDate, koef, deltaMass, minMass, maxMass, mainVolumeFish):
         mainVolumeFish -= reserve
 
         for i in range(self.amountPools - 1):
-            self.pools[i].add_new_biomass(mainVolumeFish, masses[i], i, startDate)
+            self.pools[i].add_new_biomass(mainVolumeFish, self.masses[i], i, startDate)
         # в бассейн с самой легкой рыбой отправляем в koef раз больше
         self.pools[self.amountPools - 1].indexFry = self.amountPools - 1
-        self.pools[self.amountPools - 1].add_new_biomass(int(koef * mainVolumeFish), masses[self.amountPools - 1],
+        self.pools[self.amountPools - 1].add_new_biomass(int(koef * mainVolumeFish), self.masses[self.amountPools - 1],
                                                           self.amountPools - 1, startDate)
 
         day = startDate
@@ -679,7 +796,7 @@ class Module():
         day = self.grow_up_fish_in_one_pool(day, startDate)
 
         # переместим рыбу из 3 в 0 бассейн
-        self.find_pool_with_twice_volume_and_move_half_in_empty(day)
+        self.find_pool_with_twice_volume_and_move_half_in_empty()
 
         # вырастим рыбу в 1 бассейне
         day = self.grow_up_fish_in_one_pool(day, startDate)
@@ -687,7 +804,7 @@ class Module():
         currentIndex = 4
 
         # добавим рыбу 2 * mainValue в 1 бассейн
-        self.find_empty_pool_and_add_twice_volume(mainVolumeFish, currentIndex, day, koef, deltaMass)
+        self.find_empty_pool_and_add_twice_volume(mainVolumeFish, currentIndex, day, koef, deltaMass, minMass, maxMass)
         currentIndex += 1
 
         # вырастим рыбу в 2 бассейне
@@ -695,30 +812,30 @@ class Module():
 
         return [mainVolumeFish, day, currentIndex]
 
-    def main_script1(self, mainValue, day, previousIndex, startDateSaving, koef, deltaMass):
+    def main_script1(self, mainValue, day, previousIndex, startDateSaving, koef, deltaMass, minMass, maxMass):
         # переместим из переполненного бассейна в пустой половину
-        self.find_pool_with_twice_volume_and_move_half_in_empty(day)
+        self.find_pool_with_twice_volume_and_move_half_in_empty()
 
         # вырастим рыбу в 2 бассейнах
         day = self.grow_up_fish_in_two_pools(day, startDateSaving)
 
         currentIndex = previousIndex
         # добавим mainValue штук рыб в пустой бассейн
-        self.find_empty_pool_and_add_one_volume(mainValue, currentIndex, day, deltaMass)
+        self.find_empty_pool_and_add_one_volume(mainValue, currentIndex, day, deltaMass, minMass, maxMass)
         currentIndex += 1
 
         # добавим koef * mainValue штук рыб в другой пустой бассейн
-        self.find_empty_pool_and_add_twice_volume(mainValue, currentIndex, day, koef, deltaMass)
+        self.find_empty_pool_and_add_twice_volume(mainValue, currentIndex, day, koef, deltaMass, minMass, maxMass)
         currentIndex += 1
 
         # вырастим рыбу в 2 бассейнах
         day = self.grow_up_fish_in_two_pools(day, startDateSaving)
 
         # переместим из переполненного бассейна в пустой
-        self.find_pool_with_twice_volume_and_move_half_in_empty(day)
+        self.find_pool_with_twice_volume_and_move_half_in_empty()
 
         # добавим 2 * mainValue штук рыб в другой пустой бассейн
-        self.find_empty_pool_and_add_twice_volume(mainValue, currentIndex, day, koef, deltaMass)
+        self.find_empty_pool_and_add_twice_volume(mainValue, currentIndex, day, koef, deltaMass, minMass, maxMass)
         currentIndex += 1
 
         # вырастим рыбу в 1 бассейне
@@ -726,15 +843,16 @@ class Module():
 
         return [mainValue, day, currentIndex]
 
-    def main_work1(self, startDate, endDate, masses, reserve, deltaMass):
-        resultStartScript = self.start_script1(masses, reserve, startDate, self.correctionFactor, deltaMass)
+    def main_work1(self, startDate, endDate, reserve, deltaMass, minMass, maxMass, mainVolumeFish):
+        resultStartScript = self.start_script1(reserve, startDate, self.correctionFactor,
+                                               deltaMass, minMass, maxMass, mainVolumeFish)
 
         day = resultStartScript[1]
         # [mainVolumeFish, day, currentIndex]
         resultMainScript = self.main_script1(resultStartScript[0],
                                              resultStartScript[1],
                                              resultStartScript[2],
-                                             startDate, self.correctionFactor, deltaMass)
+                                             startDate, self.correctionFactor, deltaMass, minMass, maxMass)
 
         numberMainScript = 2
         while (day < endDate):
@@ -743,25 +861,19 @@ class Module():
             resultMainScript = self.main_script1(resultMainScript[0],
                                                  resultMainScript[1],
                                                  resultMainScript[2],
-                                                 startDate, self.correctionFactor, deltaMass)
+                                                 startDate, self.correctionFactor, deltaMass, minMass, maxMass)
             day = resultMainScript[1]
 
-    def start_script_with_print(self, masses, reserve, startDate, koef, deltaMass):
-        optimization = Opimization()
-        optimalQuantity = optimization.calculate_optimized_amount_fish_in_commercial_pool(self.onePoolSquare,
-                                                                                          masses[self.amountPools - 1],
-                                                                                          masses[self.amountPools - 1],
-                                                                                          10, 10)
-        mainVolumeFish = optimalQuantity[0]
+    def start_script_with_print(self, reserve, startDate, koef, deltaMass, minMass, maxMass, mainVolumeFish):
         mainVolumeFish -= reserve
         print('Оптимальное количество мальков в 1 бассейн: ', mainVolumeFish)
 
         print('Сделаем первое зарыбление ', startDate)
         for i in range(self.amountPools - 1):
-            self.pools[i].add_new_biomass(mainVolumeFish, masses[i], i, startDate)
+            self.pools[i].add_new_biomass(mainVolumeFish, self.masses[i], i, startDate)
         # в бассейн с самой легкой рыбой отправляем в koef раз больше
         self.pools[self.amountPools - 1].indexFry = self.amountPools - 1
-        self.pools[self.amountPools - 1].add_new_biomass(int(koef * mainVolumeFish), masses[self.amountPools - 1],
+        self.pools[self.amountPools - 1].add_new_biomass(int(koef * mainVolumeFish), self.masses[self.amountPools - 1],
                                                          self.amountPools - 1, startDate)
         self.print_info()
 
@@ -775,7 +887,7 @@ class Module():
 
         # переместим рыбу из 3 в 0 бассейн
         print('переместим рыбу из 3 в 0 бассейн')
-        self.find_pool_with_twice_volume_and_move_half_in_empty(day)
+        self.find_pool_with_twice_volume_and_move_half_in_empty()
         self.print_info()
 
         # вырастим рыбу в 1 бассейне
@@ -788,7 +900,7 @@ class Module():
 
         # добавим рыбу 2 * mainValue в 1 бассейн
         print('добавим рыбу 2 * mainValue в 1 бассейн')
-        self.find_empty_pool_and_add_twice_volume(mainVolumeFish, currentIndex, day, koef, deltaMass)
+        self.find_empty_pool_and_add_twice_volume(mainVolumeFish, currentIndex, day, koef, deltaMass, minMass, maxMass)
         self.print_info()
         currentIndex += 1
 
@@ -800,10 +912,11 @@ class Module():
 
         return [mainVolumeFish, day, currentIndex]
 
-    def main_script_with_print(self, mainValue, day, previousIndex, startDateSaving, koef, deltaMass):
+    def main_script_with_print(self, mainValue, day, previousIndex, startDateSaving,
+                               koef, deltaMass, minMass, maxMass):
         # переместим из переполненного бассейна в пустой половину
         print('переместим из переполненного бассейна в пустой половину')
-        self.find_pool_with_twice_volume_and_move_half_in_empty(day)
+        self.find_pool_with_twice_volume_and_move_half_in_empty()
         self.print_info()
 
         # вырастим рыбу в 2 бассейнах
@@ -815,13 +928,13 @@ class Module():
         currentIndex = previousIndex
         # добавим mainValue штук рыб в пустой бассейн
         print('добавим mainValue штук рыб в пустой бассейн')
-        self.find_empty_pool_and_add_one_volume(mainValue, currentIndex, day, deltaMass)
+        self.find_empty_pool_and_add_one_volume(mainValue, currentIndex, day, deltaMass, minMass, maxMass)
         self.print_info()
         currentIndex += 1
 
         # добавим koef * mainValue штук рыб в другой пустой бассейн
         print('добавим koef * mainValue штук рыб в другой пустой бассейн')
-        self.find_empty_pool_and_add_twice_volume(mainValue, currentIndex, day, koef, deltaMass)
+        self.find_empty_pool_and_add_twice_volume(mainValue, currentIndex, day, koef, deltaMass, minMass, maxMass)
         currentIndex += 1
         self.print_info()
 
@@ -833,12 +946,12 @@ class Module():
 
         # переместим из переполненного бассейна в пустой
         print('переместим из переполненного бассейна в пустой')
-        self.find_pool_with_twice_volume_and_move_half_in_empty(day)
+        self.find_pool_with_twice_volume_and_move_half_in_empty()
         self.print_info()
 
         # добавим 2 * mainValue штук рыб в другой пустой бассейн
         print('добавим 2 * mainValue штук рыб в другой пустой бассейн')
-        self.find_empty_pool_and_add_twice_volume(mainValue, currentIndex, day, koef, deltaMass)
+        self.find_empty_pool_and_add_twice_volume(mainValue, currentIndex, day, koef, deltaMass, minMass, maxMass)
         self.print_info()
         currentIndex += 1
 
@@ -850,15 +963,16 @@ class Module():
 
         return [mainValue, day, currentIndex]
 
-    def main_work_with_print(self, startDate, endDate, masses, reserve, deltaMass):
-        resultStartScript = self.start_script_with_print(masses, reserve, startDate, self.correctionFactor, deltaMass)
+    def main_work_with_print(self, startDate, endDate, reserve, deltaMass, minMass, maxMass, mainVolumeFish):
+        resultStartScript = self.start_script_with_print(reserve, startDate, self.correctionFactor,
+                                                         deltaMass, minMass, maxMass, mainVolumeFish)
 
         day = resultStartScript[1]
         # [mainVolumeFish, day, currentIndex]
         resultMainScript = self.main_script_with_print(resultStartScript[0],
                                              resultStartScript[1],
                                              resultStartScript[2],
-                                             startDate, self.correctionFactor, deltaMass)
+                                             startDate, self.correctionFactor, deltaMass, minMass, maxMass)
 
         numberMainScript = 2
         while (day < endDate):
@@ -867,7 +981,7 @@ class Module():
             resultMainScript = self.main_script_with_print(resultMainScript[0],
                                                  resultMainScript[1],
                                                  resultMainScript[2],
-                                                 startDate, self.correctionFactor, deltaMass)
+                                                 startDate, self.correctionFactor, deltaMass, minMass, maxMass)
             day = resultMainScript[1]
 
 
@@ -882,16 +996,19 @@ class CWSD():
     rent = 0
     costElectricity = 0
     costCWSD = 0
-    masses = 0
     feedPrice = 0
     depreciationReservePercent = 0.0
     expansionReservePercent = 0.0
-    depreciationReserve = 0
-    expansionReserve = 0
     principalDebt = 0
-    annualPercentage = 0
+    annualPercentage = 0.0
     amountMonth = 0
     grant = 0
+    mainVolumeFish = 0
+    costNewCWSD = 0
+    costFixingCar = 0
+    depreciationLimit = 0
+    # финансовая подушка
+    financialCushion = 0
 
     feedings = list()
     fries = list()
@@ -904,20 +1021,24 @@ class CWSD():
     monthlyPayment = 0
 
 
-
-    def __init__(self, masses, amountModules=2, amountPools=4, square=10,
+    def __init__(self, masses, mainVolumeFish, amountModules=2, amountPools=4, square=10,
                  correctionFactor=2,feedPrice=260, salary=30000,
-                 amountWorkers=2, equipmentCapacity=5.5, costElectricity=3.17, rent=70000,
+                 amountWorkers=2, equipmentCapacity=5.5, costElectricity=3.17, rent=100000,
                  costCWSD=0, depreciationReservePercent=10.0, expansionReservePercent=10.0,
-                 principalDebt=450000, annualPercentage=15, amountMonth=12, grant=4500000):
+                 principalDebt=500000, annualPercentage=15.0, amountMonth=12, grant=5000000,
+                 fishPrice=850, massCommercialFish=400, singleVolumeFish=100, maximumPlantingDensity=40,
+                 costFixingCar=300000, costNewCWSD=5500000, financialCushion=300000):
         self.amountModules = amountModules
+        self.mainVolumeFish = mainVolumeFish
         self.feedPrice = feedPrice
+        self.financialCushion = financialCushion
         self.modules = list()
         for i in range(amountModules):
-            module = Module(square, masses, amountPools, correctionFactor)
+            module = Module(square, masses, amountPools, correctionFactor,
+                            singleVolumeFish, fishPrice, massCommercialFish,
+                            maximumPlantingDensity)
             self.modules.append(module)
 
-        self.masses = masses
         self.amountPools = amountPools
         self.salary = salary
         self.amountWorkers = amountWorkers
@@ -941,6 +1062,9 @@ class CWSD():
         self.electricities = list()
         self.revenues = list()
         self.resultBusinessPlan = list()
+
+        self.depreciationLimit = 1.5 * (self.costCWSD + costFixingCar)
+        self.costNewCWSD = costNewCWSD
 
     def _calculate_all_casts_and_profits_for_all_period(self, startDate, endDate):
         for i in range(self.amountModules):
@@ -969,15 +1093,16 @@ class CWSD():
             startMonth = endMonth + date.timedelta(1)
             endMonth = calculate_end_date_of_month(startMonth) - date.timedelta(1)
 
-    def work_cwsd(self, startDate, endDate, reserve, deltaMass):
+    def work_cwsd(self, startDate, endDate, reserve, deltaMass, minMass, maxMass):
         for i in range(self.amountModules):
-            self.modules[i].main_work1(startDate, endDate, self.masses, reserve, deltaMass)
+            self.modules[i].main_work1(startDate, endDate, reserve, deltaMass, minMass, maxMass, self.mainVolumeFish)
 
         self._calculate_all_casts_and_profits_for_all_period(startDate, endDate)
 
-    def work_cwsd_with_print(self, startDate, endDate, reserve, deltaMass):
+    def work_cwsd_with_print(self, startDate, endDate, reserve, deltaMass, minMass, maxMass):
         for i in range(self.amountModules):
-            self.modules[i].main_work_with_print(startDate, endDate, self.masses, reserve, deltaMass)
+            self.modules[i].main_work_with_print(startDate, endDate, reserve,
+                                                 deltaMass, minMass, maxMass, self.mainVolumeFish)
 
         self._calculate_all_casts_and_profits_for_all_period(startDate, endDate)
 
@@ -999,7 +1124,7 @@ class CWSD():
         startMonth = startDate
         endMonth = calculate_end_date_of_month(startMonth)
         currentBudget = self.principalDebt + self.grant - self.costCWSD
-        self.monthlyPayment = self.calculate_monthly_loan_payment()
+        self.calculate_monthly_loan_payment()
         currentMonth = 1
 
         while(endMonth <= endDate):
@@ -1026,27 +1151,12 @@ class CWSD():
             else:
                 self.monthlyPayment = 0
 
-
-            if ((startDate.day == endMonth.day) and
-                    (startDate.month == endMonth.month) and
-                    (startDate.year != endMonth.year) and
-                    (currentBudget > 0)):
-                currentDepreciationReserve = currentBudget * self.depreciationReservePercent / 100
-                self.depreciationReserve += currentDepreciationReserve
-                currentExpansionReserve = currentBudget * self.expansionReservePercent / 100
-                self.expansionReserve += currentExpansionReserve
-            else:
-                currentDepreciationReserve = 0
-                currentExpansionReserve = 0
-
             item.append(currentBudget)
-            item.append(self.depreciationReserve)
-            item.append(self.expansionReserve)
+            item.append(0)
+            item.append(0)
             item.append(self.monthlyPayment)
-            item.append(currentDepreciationReserve + currentExpansionReserve + self.monthlyPayment +
-                        techCost_electricities + techCost_rents + techCost_salaries + bioCost_feedings +
-                        bioCost_fries
-                        )
+            item.append(self.monthlyPayment + techCost_electricities +
+                        techCost_rents + techCost_salaries + bioCost_feedings + bioCost_fries)
 
             # item = [конец этого месяца, предыдущий бюджет, траты на мальков,
             #         на корм, на зарплату, на аренду, на электричество, выручка, текущий бюджет,
@@ -1055,9 +1165,9 @@ class CWSD():
             startMonth = endMonth
             endMonth = calculate_end_date_of_month(startMonth)
 
-        self.calculate_family_profit(limitSalary)
 
-        return self.resultBusinessPlan[len(self.resultBusinessPlan) - 1][8]
+        return self.resultBusinessPlan[len(self.resultBusinessPlan) - 1][9] + \
+               self.resultBusinessPlan[len(self.resultBusinessPlan) - 1][10]
 
     def find_minimal_budget(self):
         # item = [конец этого месяца, предыдущий бюджет, траты на мальков,
@@ -1095,8 +1205,7 @@ class CWSD():
             print('На аренду: ', item[5])
             print('На электричество: ', item[6])
             print('Выплаты за кредит: ', item[11])
-            if (i != len(self.resultBusinessPlan) - 1):
-                print('Зарплата семье: ', item[13])
+
             print('Общие расходы: ', item[12])
             print('Резерв на амортизацию оборудования составляет: ', item[9])
             print('Резерв на расширение производства составляет: ', item[10])
@@ -1110,27 +1219,7 @@ class CWSD():
         annuityRatio = monthlyPercentage * (1 + monthlyPercentage) ** self.amountMonth
         annuityRatio /= (1 + monthlyPercentage) ** self.amountMonth - 1
         monthlyPayment = self.principalDebt * annuityRatio
-        return monthlyPayment
-
-    def calculate_family_profit(self, limitSalary):
-        for i in range(len(self.resultBusinessPlan) - 1):
-            currentBusinessInfo = self.resultBusinessPlan[i]
-            nextBusinessInfo = self.resultBusinessPlan[i + 1]
-            delta = currentBusinessInfo[7] - nextBusinessInfo[12]
-            # item = [конец этого месяца, предыдущий бюджет, траты на мальков,
-            #         на корм, на зарплату, на аренду, на электричество, выручка, текущий бюджет,
-            #         резерв на амортизацию, резерв на расширение, месячная плата за кредит, общие расходы]
-            ourSalary = 0
-            if (currentBusinessInfo[8] > 0):
-                if (delta > 2 * limitSalary):
-                    ourSalary = 2 * limitSalary
-                elif (0 < delta <= 2 * limitSalary):
-                    ourSalary = delta / 2
-                else:
-                    ourSalary = 0
-            self.resultBusinessPlan[i][8] -= ourSalary
-            self.resultBusinessPlan[i][12] += ourSalary
-            self.resultBusinessPlan[i].append(ourSalary)
+        self.monthlyPayment = monthlyPayment
 
 
 class Business():
@@ -1142,61 +1231,78 @@ class Business():
     def __init__(self, startMasses):
         self.cwsds = list()
         self.startMasses = startMasses
-        amountCWSDs = 1
-
-        newCWSD = CWSD(startMasses, 2, 4, 10, 2, 260, 40000, 2, 5.5, 3.17,
-                       100000, 3000000, 7.5, 7.5, 500000, 15, 36, 5000000)
-        self.cwsds.append(newCWSD)
-
+        self.amountCWSDs = 0
         self.totalBudget = 0
 
-    def addNewCWSD(self):
-        newCWSD = CWSD(self.startMasses, 2, 4, 10, 2, 260, 40000, 2, 5.5, 3.17,
-                       100000, 3000000, 7.5, 7.5, 500000, 15, 36, 5000000)
+    def addNewCWSD(self, masses, mainVolumeFish, amountModules, amountPools,
+                   poolSquare, correctionFactor, feedPrice,
+                   workerSalary, amountWorkers, cwsdCapacity,
+                   electricityCost, rent, costCWSD, depreciationReservePercent,
+                   expansionReservePercent, credit, annualPercentage, amountCreditMonth,
+                   grant, fishPrice, massCommercialFish):
+
+        self.amountCWSDs += 1
+        newCWSD = CWSD(masses, mainVolumeFish, amountModules, amountPools,
+                       poolSquare, correctionFactor, feedPrice,
+                       workerSalary, amountWorkers, cwsdCapacity,
+                       electricityCost, rent, costCWSD, depreciationReservePercent,
+                       expansionReservePercent, credit, annualPercentage, amountCreditMonth,
+                       grant, fishPrice, massCommercialFish)
         self.cwsds.append(newCWSD)
 
+    def work_cwsd(self, cwsdNumber, minMass, maxMass):
+        self.cwsds[cwsdNumber].work_cwsd_with_print(date.date.today(), date.date(2028, 1, 1), 50, 50, minMass, maxMass)
+        self.cwsds[cwsdNumber].calculate_result_business_plan(date.date.today(), date.date(2028, 1, 1), 100000)
+
+    def make_business_plan(self):
+        pass
 
 
-'''
-masses = [100, 70, 50, 20]
-cwsd = Module(20, masses, 30000, 2, 4, 4, 1000, 200, 5.5, 70000, 3.17, 21, 5, 0)
-
-cwsd.main_work1(date.date.today(), date.date(2028, 1, 1), masses, 20)
-cwsd.show_all_information_every_month(date.date.today(), date.date(2028, 1, 1))
-'''
-'''
 masses = [100, 50, 30, 20]
-# masses, amountModules=2, amountPools=4, square=10, correctionFactor=2,feedPrice=260, salary=30000,
-#                  amountWorkers=2, equipmentCapacity=5.5, costElectricity=3.17, rent=70000,
-#                  costCWSD=0, depreciationReservePercent=10, expansionReservePercent=10
-cwsd = CWSD(masses, 2, 4, 10, 2, 260, 40000, 2, 5.5, 3.17, 70000, 3000000, 10, 18)
-cwsd.work_cwsd(date.date.today(), date.date(2028, 1, 1), 50, 50)
-cwsd.calculate_result_business_plan(date.date.today(), date.date(2028, 1, 1))
-cwsd.print_info(date.date.today())
-'''
-# arrayFryPurchases[i] = [date, amountFries, averageMass, totalPrice]
-# costFishFry = [[5, 35], [10, 40], [20, 45], [30, 50], [50, 60], [100, 130]]
-'''
-x = Opimization()
-masses = [100, 50, 30, 20]
-result = x.calculate_optimal_deltaMass(masses, 10, 10, 300, date.date.today(), date.date(2028, 1, 1))
-print(result)
-print()
-print()
-print()
-print()
-print()
-print('Начата проверка!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-print()
-print()
-print()
-print()
-print()
-'''
-masses = [100, 50, 30, 20]
+amountModules = 2
+amountPools = 4
+poolSquare = 10
+# показывает во сколько ра нужно переполнить бассейн
+correctionFactor = 2
+feedPrice = 260
+massCommercialFish = 400
+fishPrice = 850
+workerSalary = 40000
+amountWorkers = 2
+cwsdCapacity = 5.5
+electricityCost = 3.17
+rent = 100000
+costCWSD = 3000000
+depreciationReservePercent = 7.5
+expansionReservePercent = 7.5
+credit = 500000
+annualPercentage = 15
+amountCreditMonth = 12
+grant = 5000000
+feedRatio = 1.5
 
-cwsd = CWSD(masses, 2, 4, 10, 2, 260, 40000, 2, 5.5, 3.17, 100000, 3000000, 7.5, 7.5, 500000, 15, 36, 5000000)
-cwsd.work_cwsd_with_print(date.date.today(), date.date(2028, 1, 1), 50, 50)
-cwsd.calculate_result_business_plan(date.date.today(), date.date(2028, 1, 1), 100000)
+opt = Opimization(masses, 730, amountModules, amountPools,
+                  poolSquare, correctionFactor, feedPrice,
+                  workerSalary, amountWorkers, cwsdCapacity,
+                  electricityCost, rent, costCWSD, depreciationReservePercent,
+                  expansionReservePercent, credit, annualPercentage, amountCreditMonth,
+                  grant, fishPrice, massCommercialFish)
+
+optimalQuantity = opt.calculate_optimized_amount_fish_in_commercial_pool(poolSquare,
+                                                                         masses[amountPools - 1],
+                                                                         masses[amountPools - 1],
+                                                                         10, 10)
+mainVolumeFish = optimalQuantity[0]
+opt.mainVolumeFish = mainVolumeFish
+
+cwsd = CWSD(masses, mainVolumeFish, amountModules, amountPools,
+            poolSquare, correctionFactor, feedPrice,
+            workerSalary, amountWorkers, cwsdCapacity,
+            electricityCost, rent, costCWSD, depreciationReservePercent,
+            expansionReservePercent, credit, annualPercentage, amountCreditMonth,
+            grant, fishPrice, massCommercialFish)
+
+cwsd.work_cwsd_with_print(date.date.today(), date.date(2028, 6, 1), 50, 50, 20, 250)
+cwsd.calculate_result_business_plan(date.date.today(), date.date(2028, 6, 1), 100000)
 cwsd.print_info(date.date.today())
 print(cwsd.find_minimal_budget())
