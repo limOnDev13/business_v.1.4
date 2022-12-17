@@ -999,6 +999,9 @@ class CWSD():
     feedPrice = 0
     depreciationReservePercent = 0.0
     expansionReservePercent = 0.0
+    depreciationReserve = 0
+    expansionReserve = 0
+    expensesReserve = 0
     principalDebt = 0
     annualPercentage = 0.0
     amountMonth = 0
@@ -1123,12 +1126,15 @@ class CWSD():
     def calculate_result_business_plan(self, startDate, endDate, limitSalary):
         startMonth = startDate
         endMonth = calculate_end_date_of_month(startMonth)
-        currentBudget = self.principalDebt + self.grant - self.costCWSD
+        self.expensesReserve = self.principalDebt + self.grant - self.costCWSD
+        self.depreciationReserve = 0
+        self.expansionReserve = 0
         self.calculate_monthly_loan_payment()
         currentMonth = 1
+        maxGeneralExpenses = 0
 
         while(endMonth <= endDate):
-            item = [endMonth, currentBudget]
+            item = [endMonth, self.expensesReserve, self.expansionReserve]
             bioCost_fries = self._find_events_in_this_period(self.fries, startMonth, endMonth)
             item.append(bioCost_fries)
             bioCost_feedings = self._find_events_in_this_period(self.feedings, startMonth, endMonth)
@@ -1142,21 +1148,38 @@ class CWSD():
             revenue = self._find_events_in_this_period(self.revenues, startMonth, endMonth)
             item.append(revenue)
 
-            currentBudget += revenue - bioCost_fries - bioCost_feedings - techCost_salaries\
-                             - techCost_rents - techCost_electricities
-
+            generalExpenses = 0
             if (currentMonth <= self.amountMonth):
-                currentBudget -= self.monthlyPayment
+                generalExpenses += self.monthlyPayment
                 currentMonth += 1
             else:
                 self.monthlyPayment = 0
+
+            generalExpenses += bioCost_fries + bioCost_feedings + techCost_salaries\
+                                             + techCost_rents + techCost_electricities\
+                                             + self.monthlyPayment
+
+            if (generalExpenses > maxGeneralExpenses):
+                maxGeneralExpenses = generalExpenses
+
+            currentProfit = revenue - generalExpenses
+            currentSallary = 0
+            if ((currentProfit > 0) and
+                    (self.expensesReserve + currentProfit > maxGeneralExpenses + self.financialCushion)):
+                delta = self.expensesReserve + currentProfit - (maxGeneralExpenses + self.financialCushion)
+                if (delta > 2 * limitSalary):
+                    currentSallary = 2 * limitSalary
+                else:
+                    currentSallary = 0.5 * delta
+
+                rest = delta - currentSallary
+                self.expansionReserve
 
             item.append(currentBudget)
             item.append(0)
             item.append(0)
             item.append(self.monthlyPayment)
-            item.append(self.monthlyPayment + techCost_electricities +
-                        techCost_rents + techCost_salaries + bioCost_feedings + bioCost_fries)
+            item.append(generalExpenses)
 
             # item = [конец этого месяца, предыдущий бюджет, траты на мальков,
             #         на корм, на зарплату, на аренду, на электричество, выручка, текущий бюджет,
@@ -1164,7 +1187,6 @@ class CWSD():
             self.resultBusinessPlan.append(item)
             startMonth = endMonth
             endMonth = calculate_end_date_of_month(startMonth)
-
 
         return self.resultBusinessPlan[len(self.resultBusinessPlan) - 1][9] + \
                self.resultBusinessPlan[len(self.resultBusinessPlan) - 1][10]
