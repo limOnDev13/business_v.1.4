@@ -398,8 +398,6 @@ class Opimization():
     electricityCost = 3.17
     rent = 100000
     costCWSD = 3000000
-    depreciationReservePercent = 7.5
-    expansionReservePercent = 7.5
     credit = 500000
     annualPercentage = 15
     amountCreditMonth = 12
@@ -410,8 +408,8 @@ class Opimization():
     def __init__(self, masses, mainVolueFish, amountModules=2, amountPools=4,
             poolSquare=10, correctionFactor=2, feedPrice=260,
             workerSalary=40000, amountWorkers=2, cwsdCapacity=5.5,
-            electricityCost=3.17, rent=100000, costCWSD=3000000, depreciationReservePercent=7.5,
-            expansionReservePercent=7.5, credit=500000, annualPercentage=15, amountCreditMonth=12,
+            electricityCost=3.17, rent=100000, costCWSD=3000000,
+            credit=500000, annualPercentage=15, amountCreditMonth=12,
             grant=5000000, fishPrice=850, massCommercialFish=400):
         self.masses = masses
         self.amountModules = amountModules
@@ -425,8 +423,6 @@ class Opimization():
         self.electricityCost = electricityCost
         self.rent = rent
         self.costCWSD = costCWSD
-        self.depreciationReservePercent = depreciationReservePercent
-        self.expansionReservePercent = expansionReservePercent
         self.credit = credit
         self.annualPercentage = annualPercentage
         self.amountCreditMonth = amountCreditMonth
@@ -498,8 +494,8 @@ class Opimization():
             cwsd = CWSD(self.masses, self.mainVolueFish, self.amountModules, self.amountPools,
                         self.poolSquare, self.correctionFactor, self.feedPrice,
                         self.workerSalary, self.amountWorkers, self.cwsdCapacity,
-                        self.electricityCost, self.rent, self.costCWSD, self.depreciationReservePercent,
-                        self.expansionReservePercent, self.credit, self.annualPercentage, self.amountCreditMonth,
+                        self.electricityCost, self.rent, self.costCWSD,
+                        self.credit, self.annualPercentage, self.amountCreditMonth,
                         self.grant, self.fishPrice, self.massCommercialFish)
             cwsd.work_cwsd(startDate, endDate, 50, delta, minMass, maxMass)
             x = cwsd.calculate_result_business_plan(startDate, endDate, 100000)
@@ -521,8 +517,8 @@ class Opimization():
             cwsd = CWSD(self.masses, self.mainVolueFish, self.amountModules, self.amountPools,
                         self.poolSquare, self.correctionFactor, self.feedPrice,
                         self.workerSalary, self.amountWorkers, self.cwsdCapacity,
-                        self.electricityCost, self.rent, self.costCWSD, self.depreciationReservePercent,
-                        self.expansionReservePercent, self.credit, self.annualPercentage, self.amountCreditMonth,
+                        self.electricityCost, self.rent, self.costCWSD,
+                        self.credit, self.annualPercentage, self.amountCreditMonth,
                         self.grant, self.fishPrice, self.massCommercialFish)
             cwsd.work_cwsd(startDate, endDate, 50, 50, minMass, maxMass)
             cwsd.calculate_result_business_plan(startDate, endDate, 100000)
@@ -545,8 +541,8 @@ class Opimization():
             cwsd = CWSD(self.masses, self.mainVolueFish, self.amountModules, self.amountPools,
                         self.poolSquare, self.correctionFactor, self.feedPrice,
                         self.workerSalary, self.amountWorkers, self.cwsdCapacity,
-                        self.electricityCost, self.rent, self.costCWSD, self.depreciationReservePercent,
-                        self.expansionReservePercent, self.credit, self.annualPercentage, self.amountCreditMonth,
+                        self.electricityCost, self.rent, self.costCWSD,
+                        self.credit, self.annualPercentage, self.amountCreditMonth,
                         self.grant, self.fishPrice, self.massCommercialFish)
             cwsd.work_cwsd(startDate, endDate, 50, 50, minMass, maxMass)
             cwsd.calculate_result_business_plan(date.date.today(), date.date(2028, 1, 1), 100000)
@@ -570,16 +566,16 @@ class Opimization():
                                   mainVolueFish, amountModules=2, amountPools=4,
                                   poolSquare=10, correctionFactor=2, feedPrice=260,
                                   workerSalary=40000, amountWorkers=2, cwsdCapacity=5.5,
-                                  electricityCost=3.17, rent=100000, costCWSD=3000000, depreciationReservePercent=7.5,
-                                  expansionReservePercent=7.5, credit=500000, annualPercentage=15, amountCreditMonth=12,
+                                  electricityCost=3.17, rent=100000, costCWSD=3000000,
+                                  credit=500000, annualPercentage=15, amountCreditMonth=12,
                                   grant=5000000, fishPrice=850, massCommercialFish=400):
         result = 0
         for i in range(amountSteps):
             cwsd = CWSD(masses, mainVolueFish, amountModules, amountPools,
                         poolSquare, correctionFactor, feedPrice,
                         workerSalary, amountWorkers, cwsdCapacity,
-                        electricityCost, rent, costCWSD, depreciationReservePercent,
-                        expansionReservePercent, credit, annualPercentage, amountCreditMonth,
+                        electricityCost, rent, costCWSD,
+                        credit, annualPercentage, amountCreditMonth,
                         grant, fishPrice, massCommercialFish)
             cwsd.work_cwsd(startDate, endDate, reserve, deltaMass, minMass, maxMass)
             x = cwsd.calculate_result_business_plan(startDate, endDate, limitSalary)
@@ -604,6 +600,38 @@ class Opimization():
             print([maxMass, x])
             encounter += 1
         return [result, max]
+
+    def calculate_optimal_credit2(self, startAmountMonth, stepMonth, endAmountMonth,
+                                 startDebt, stepDebt, endDebt, amountOperations,
+                                 starDate, endDate, reserve, deltaMass,
+                                 minMass, maxMass, limitSalary):
+        debt = startDebt
+
+        while (debt <= endDebt):
+            amountMonth = startAmountMonth
+            maxMinus = 0
+            while (amountMonth <= endAmountMonth):
+                flag = True
+                for i in range(amountOperations):
+                    cwsd = CWSD(self.masses, self.mainVolueFish, self.amountModules, self.amountPools,
+                                self.poolSquare, self.correctionFactor, self.feedPrice,
+                                self.workerSalary, self.amountWorkers, self.cwsdCapacity,
+                                self.electricityCost, self.rent, self.costCWSD,
+                                debt, self.annualPercentage, amountMonth)
+                    cwsd.work_cwsd(starDate, endDate, reserve, deltaMass, minMass, maxMass)
+                    cwsd.calculate_result_business_plan(starDate, endDate, limitSalary)
+                    if (cwsd.howMuchIsMissing > 0):
+                        flag = False
+                        if (maxMinus < cwsd.howMuchIsMissing):
+                            maxMinus = cwsd.howMuchIsMissing
+
+                if (flag):
+                    print('Прошел проверку кредит ', debt, ' на ', amountMonth, ' месяцев')
+                else:
+                    print('Нам не подходит кредит ', debt, ' на ', amountMonth,
+                          ' месяцев, т.к. в какой-то момент мы  можем уйти максимум в минус на ', maxMinus)
+                amountMonth += stepMonth
+            debt += stepDebt
 
 
 class Module():
@@ -986,33 +1014,42 @@ class Module():
 
 
 class CWSD():
+    # Все, что связано с устройством узв
     amountModules = 0
     amountPools = 0
     modules = list()
     square = 0
+
+    # Все, что связано техническими расходами
     salary = 0
     amountWorkers = 0
     equipmentCapacity = 0.0
     rent = 0
     costElectricity = 0
     costCWSD = 0
+
+    # Все, что связано с биорасходами
     feedPrice = 0
-    depreciationReservePercent = 0.0
-    expansionReservePercent = 0.0
+
+    # Все, что связано с резервами
     depreciationReserve = 0
     expansionReserve = 0
     expensesReserve = 0
+    depreciationLimit = 0
+    expansionLimit = 0
+
+    # Все, что связано со стартовым капиталом
     principalDebt = 0
     annualPercentage = 0.0
     amountMonth = 0
     grant = 0
+
     mainVolumeFish = 0
-    costNewCWSD = 0
-    costFixingCar = 0
-    depreciationLimit = 0
+
     # финансовая подушка
     financialCushion = 0
 
+    # массивы с основной информацией
     feedings = list()
     fries = list()
     salaries = list()
@@ -1020,17 +1057,19 @@ class CWSD():
     electricities = list()
     revenues = list()
     resultBusinessPlan = list()
+    resultBusinessPlanEveryMonth = list()
 
+    # изменяемые в ходе работы параметры
+    haveReservesBeenFilled = False
     monthlyPayment = 0
-
+    howMuchIsMissing = 0
 
     def __init__(self, masses, mainVolumeFish, amountModules=2, amountPools=4, square=10,
                  correctionFactor=2,feedPrice=260, salary=30000,
                  amountWorkers=2, equipmentCapacity=5.5, costElectricity=3.17, rent=100000,
-                 costCWSD=0, depreciationReservePercent=10.0, expansionReservePercent=10.0,
-                 principalDebt=500000, annualPercentage=15.0, amountMonth=12, grant=5000000,
+                 costCWSD=0, principalDebt=500000, annualPercentage=15.0, amountMonth=12, grant=5000000,
                  fishPrice=850, massCommercialFish=400, singleVolumeFish=100, maximumPlantingDensity=40,
-                 costFixingCar=300000, costNewCWSD=5500000, financialCushion=300000):
+                 financialCushion=300000, depreciationLimit=2000000, expansionLimit=5000000):
         self.amountModules = amountModules
         self.mainVolumeFish = mainVolumeFish
         self.feedPrice = feedPrice
@@ -1049,14 +1088,14 @@ class CWSD():
         self.costElectricity = costElectricity
         self.rent = rent
         self.costCWSD = costCWSD
-        self.depreciationReservePercent = depreciationReservePercent
-        self.expansionReservePercent = expansionReservePercent
         self.depreciationReserve = 0
         self.expansionReserve = 0
         self.principalDebt = principalDebt
         self.annualPercentage = annualPercentage
         self.amountMonth = amountMonth
         self.grant = grant
+        self.depreciationLimit = depreciationLimit
+        self.expansionLimit = expansionLimit
 
         self.feedings = list()
         self.fries = list()
@@ -1065,9 +1104,7 @@ class CWSD():
         self.electricities = list()
         self.revenues = list()
         self.resultBusinessPlan = list()
-
-        self.depreciationLimit = 1.5 * (self.costCWSD + costFixingCar)
-        self.costNewCWSD = costNewCWSD
+        self.resultBusinessPlanEveryMonth = list()
 
     def _calculate_all_casts_and_profits_for_all_period(self, startDate, endDate):
         for i in range(self.amountModules):
@@ -1123,18 +1160,137 @@ class CWSD():
                 result += array[i][1]
         return result
 
-    def calculate_result_business_plan(self, startDate, endDate, limitSalary):
+    def _find_money_in_other_fonds(self, neededMoney, useBothReserves):
+        restMoney = neededMoney
+        amountFundsFoundOnOtherReserves = 0
+        avaliableMoneyInExpansionReserve = 0
+        avaliableMoneyInDepreciationReserve = 0
+
+        if (restMoney <= self.expansionReserve):
+            avaliableMoneyInExpansionReserve = restMoney
+        elif (0 <= self.expansionReserve < restMoney):
+            avaliableMoneyInExpansionReserve = self.expansionReserve
+
+        self.expansionReserve -= avaliableMoneyInExpansionReserve
+        amountFundsFoundOnOtherReserves += avaliableMoneyInExpansionReserve
+        restMoney -= avaliableMoneyInExpansionReserve
+
+        if ((restMoney > 0) and (useBothReserves)):
+            if (restMoney <= self.depreciationReserve):
+                avaliableMoneyInDepreciationReserve = restMoney
+            elif (0 <= self.depreciationReserve < restMoney):
+                avaliableMoneyInDepreciationReserve = self.depreciationReserve
+
+        self.depreciationReserve -= avaliableMoneyInDepreciationReserve
+        amountFundsFoundOnOtherReserves += avaliableMoneyInDepreciationReserve
+
+        return amountFundsFoundOnOtherReserves
+
+    def _calculate_family_profit(self, minSalary, limitSalary, avaliableMoney):
+        restMoney = avaliableMoney
+        if (restMoney >= limitSalary):
+            familyProfit = limitSalary
+            restMoney -= familyProfit
+        elif (minSalary <= restMoney <= limitSalary):
+            delta = limitSalary - avaliableMoney
+            familyProfit = avaliableMoney + self._find_money_in_other_fonds(delta, False)
+            restMoney = 0
+        else:
+            familyProfit = 0
+
+        return [familyProfit, restMoney]
+
+    def _add_money_to_additional_reserves(self, avaliableMoney):
+        freeMoney = avaliableMoney
+
+        if (self.depreciationReserve < self.depreciationLimit):
+            delta = self.depreciationLimit - self.depreciationReserve
+            if(delta > freeMoney / 2):
+                self.depreciationReserve += freeMoney / 2
+                freeMoney -= freeMoney / 2
+            else:
+                self.depreciationReserve += delta
+                freeMoney -= delta
+        if (self.expansionReserve < self.expansionLimit):
+            delta = self.expansionLimit - self.expansionReserve
+            if (delta > freeMoney):
+                self.expansionReserve += freeMoney
+                freeMoney = 0.0
+            else:
+                self.expansionReserve += delta
+                freeMoney -= delta
+
+        return freeMoney
+
+    def controller_reserves(self, expenses, revenue, maxExpenses, minSalary, limitSalary):
+        resultMaxExpenses = maxExpenses
+        if (expenses > resultMaxExpenses):
+            resultMaxExpenses = expenses
+
+        # В первую очередь смотрим, хватает ли денег на резерве для трат на покрытие нынешних трат.
+        # Не учитываем деньги из выручки в этом месяце, т.к. может сложиться ситуация,
+        # в которой траты пришлись на начало месяца, а выручка на конец
+        if (self.expensesReserve < expenses):
+            delta = expenses - self.expensesReserve
+            self.expensesReserve += self._find_money_in_other_fonds(delta, True)
+            # если после взятия денег с других фондов денег не хватает на траты,
+            # то это финиш и нужно что-то менять
+            if (self.expensesReserve < expenses):
+                self.howMuchIsMissing += expenses - self.expensesReserve
+
+        # все ок, убираем из резерва нынешние траты
+        self.expensesReserve -= expenses
+        # Доступные средства складываются из резерва на траты и уже выручки.
+        # Все средства снимаем с резерва для трат (далее РДТ), чтобы не запутаться.
+        avaliableMoney = self.expensesReserve
+        self.expensesReserve = 0.0
+        avaliableMoney += revenue
+
+        # максимальный объем резерва для трат складывается из максимальных трат за все время +
+        # финансовая подушка
+        volumeExpensesReserve = resultMaxExpenses + self.financialCushion
+        currentFamilySalary = 0
+
+        # если доступных средств хватает на заполнение максимального объема РДТ,
+        # то все просто, берем сколько нужно в РДТ, остальное идет на
+        # резерв на амортизацию и на расширение (далее РДА и РДР) и зп
+        if (avaliableMoney >= volumeExpensesReserve):
+            self.expensesReserve = volumeExpensesReserve
+            avaliableMoney -= volumeExpensesReserve
+
+            # принцип распределения оставшихся доступных средств следующий:
+            # половина идет на зп (но не более limitSalary),
+            # другая половина идет в РДА и РДР в равном соотношении
+            x = self._calculate_family_profit(minSalary, limitSalary, avaliableMoney)
+            currentFamilySalary = x[0]
+            avaliableMoney = x[1]
+
+            avaliableMoney = self._add_money_to_additional_reserves(avaliableMoney)
+
+        # если доступных средств не хватает на покрытие максимального объема,
+        # то ищем средства на других резервах
+        else:
+            delta = volumeExpensesReserve - avaliableMoney
+            self.expensesReserve += self._find_money_in_other_fonds(delta, True)
+            # Если даже средств не хватило, то все доступные деньги идут в РДТ
+            # (также деньги из других фондов). То что РДТ будет не полностью заполнен - не страшно,
+            # т.к. в следующем месяце траты могут быть небольшими и резерва хватить
+            self.expensesReserve += avaliableMoney
+
+        return [currentFamilySalary, resultMaxExpenses, avaliableMoney]
+
+    def calculate_result_business_plan(self, startDate, endDate, minSalary, limitSalary):
         startMonth = startDate
         endMonth = calculate_end_date_of_month(startMonth)
-        self.expensesReserve = self.principalDebt + self.grant - self.costCWSD
-        self.depreciationReserve = 0
-        self.expansionReserve = 0
+        self.expensesReserve = 0
+        self.depreciationReserve = (self.principalDebt + self.grant - self.costCWSD) / 2
+        self.expansionReserve = (self.principalDebt + self.grant - self.costCWSD) / 2
         self.calculate_monthly_loan_payment()
         currentMonth = 1
         maxGeneralExpenses = 0
 
         while(endMonth <= endDate):
-            item = [endMonth, self.expensesReserve, self.expansionReserve]
+            item = [endMonth, self.expensesReserve]
             bioCost_fries = self._find_events_in_this_period(self.fries, startMonth, endMonth)
             item.append(bioCost_fries)
             bioCost_feedings = self._find_events_in_this_period(self.feedings, startMonth, endMonth)
@@ -1146,7 +1302,6 @@ class CWSD():
             techCost_electricities = self._find_events_in_this_period(self.electricities, startMonth, endMonth)
             item.append(techCost_electricities)
             revenue = self._find_events_in_this_period(self.revenues, startMonth, endMonth)
-            item.append(revenue)
 
             generalExpenses = 0
             if (currentMonth <= self.amountMonth):
@@ -1156,49 +1311,41 @@ class CWSD():
                 self.monthlyPayment = 0
 
             generalExpenses += bioCost_fries + bioCost_feedings + techCost_salaries\
-                                             + techCost_rents + techCost_electricities\
-                                             + self.monthlyPayment
+                                             + techCost_rents + techCost_electricities
 
-            if (generalExpenses > maxGeneralExpenses):
-                maxGeneralExpenses = generalExpenses
+            x = self.controller_reserves(generalExpenses, revenue, maxGeneralExpenses, minSalary, limitSalary)
+            currentFamilySalary = x[0]
+            maxGeneralExpenses = x[1]
 
-            currentProfit = revenue - generalExpenses
-            currentSallary = 0
-            if ((currentProfit > 0) and
-                    (self.expensesReserve + currentProfit > maxGeneralExpenses + self.financialCushion)):
-                delta = self.expensesReserve + currentProfit - (maxGeneralExpenses + self.financialCushion)
-                if (delta > 2 * limitSalary):
-                    currentSallary = 2 * limitSalary
-                else:
-                    currentSallary = 0.5 * delta
+            currentBudget = self.expensesReserve + self.expansionReserve + \
+                            self.depreciationReserve + currentFamilySalary
 
-                rest = delta - currentSallary
-                self.expansionReserve
-
-            item.append(currentBudget)
-            item.append(0)
-            item.append(0)
             item.append(self.monthlyPayment)
             item.append(generalExpenses)
+            item.append(revenue)
+            item.append(currentBudget)
+            item.append(self.expensesReserve)
+            item.append(self.depreciationReserve)
+            item.append(self.expansionReserve)
+            item.append(currentFamilySalary)
 
-            # item = [конец этого месяца, предыдущий бюджет, траты на мальков,
-            #         на корм, на зарплату, на аренду, на электричество, выручка, текущий бюджет,
-            #         резерв на амортизацию, резерв на расширение, месячная плата за кредит, общие расходы]
+            # item = [конец этого месяца, средства на резерве для расходов с предыдущего месяца,
+            #         траты на малька, на корм, на зарплату, на ренту, на электричество, месячная плата по кредиту
+            #         суммарные расходы, выручка, бюджет, обновленный резерв на траты,
+            #         обновленный резерв на амортизацию, обновленный резерв на расширение, зарплата семье в этом месяце]
             self.resultBusinessPlan.append(item)
             startMonth = endMonth
             endMonth = calculate_end_date_of_month(startMonth)
-
-        return self.resultBusinessPlan[len(self.resultBusinessPlan) - 1][9] + \
-               self.resultBusinessPlan[len(self.resultBusinessPlan) - 1][10]
 
     def find_minimal_budget(self):
         # item = [конец этого месяца, предыдущий бюджет, траты на мальков,
         #         на корм, на зарплату, на аренду, на электричество, выручка, текущий бюджет,
         #         резерв на амортизацию, резерв на расширение]
-        result = self.resultBusinessPlan[0][8]
+        result = [self.resultBusinessPlan[0][10], self.resultBusinessPlan[0][0]]
         for i in range(len(self.resultBusinessPlan)):
-            if (result > self.resultBusinessPlan[i][8]):
-                result = self.resultBusinessPlan[i][8]
+            if (result[0] > self.resultBusinessPlan[i][10]):
+                result[0] = self.resultBusinessPlan[i][10]
+                result[1] = self.resultBusinessPlan[i][0]
         return result
 
     def print_info(self, startDate):
@@ -1206,9 +1353,10 @@ class CWSD():
 
         for i in range(len(self.resultBusinessPlan)):
             item = self.resultBusinessPlan[i]
-            # item = [конец этого месяца, предыдущий бюджет, траты на мальков,
-            #         на корм, на зарплату, на аренду, на электричество, выручка, текущий бюджет,
-            #         резерв на амортизацию оборудования, резерв на расширение]
+            # item = [конец этого месяца, средства на резерве для расходов с предыдущего месяца,
+            #         траты на малька, на корм, на зарплату, на ренту, на электричество, месячная плата по кредиту
+            #         суммарные расходы, выручка, бюджет, обновленный резерв на траты,
+            #         обновленный резерв на амортизацию, обновленный резерв на расширение, зарплата семье в этом месяце]
             print('------------------------------------------------------------')
             print(i, ' месяц, с ', startMonth, ' по ', item[0])
             print('На конец текущего месяца ситуация в бассейнах будет следующая:')
@@ -1220,64 +1368,246 @@ class CWSD():
                           self.modules[j].pools[k].poolHistory[i][2], ' средняя масса: ',
                           self.modules[j].pools[k].poolHistory[i][3], ' плотность посадки: ',
                           self.modules[j].pools[k].poolHistory[i][4])
-            print('Бюджет с прошлого месяца: ', item[1])
+
+            print('Резерв на расходы в этом месяце: ', item[1])
             print('Будет затрачено на мальков: ', item[2])
             print('На корм: ', item[3])
             print('На зарплату: ', item[4])
             print('На аренду: ', item[5])
             print('На электричество: ', item[6])
-            print('Выплаты за кредит: ', item[11])
-
-            print('Общие расходы: ', item[12])
-            print('Резерв на амортизацию оборудования составляет: ', item[9])
-            print('Резерв на расширение производства составляет: ', item[10])
-            print('Выручка составит: ', item[7])
-            print('Бюджет на конец текущего месяца месяца составит: ', item[8])
+            print('Выплаты за кредит: ', item[7])
+            print('Общие расходы: ', item[8])
+            print('Выручка составит: ', item[9])
+            print('Бюджет в этом месяце: ', item[10])
+            print('Резерв на расходы в следующем месяце составит: ', item[11])
+            print('Резерв на амортизацию составит: ', item[12])
+            print('Резерв расширение производства составит: ', item[13])
+            print('Зарплата семье в этом месяце составит: ', item[14])
             print()
             startMonth = item[0]
 
     def calculate_monthly_loan_payment(self):
-        monthlyPercentage = self.annualPercentage / 12 / 100
-        annuityRatio = monthlyPercentage * (1 + monthlyPercentage) ** self.amountMonth
-        annuityRatio /= (1 + monthlyPercentage) ** self.amountMonth - 1
-        monthlyPayment = self.principalDebt * annuityRatio
-        self.monthlyPayment = monthlyPayment
+        if ((self.principalDebt != 0) and
+                (self.annualPercentage != 0) and
+                (self.amountMonth != 0)):
+            monthlyPercentage = self.annualPercentage / 12 / 100
+            annuityRatio = monthlyPercentage * (1 + monthlyPercentage) ** self.amountMonth
+            annuityRatio /= (1 + monthlyPercentage) ** self.amountMonth - 1
+            monthlyPayment = self.principalDebt * annuityRatio
+            self.monthlyPayment = monthlyPayment
+        else:
+            self.monthlyPayment = 0
+
+    def calculate_cost_launching_new_cwsd(self, startDate):
+        self.calculate_monthly_loan_payment()
+        x = self.find_minimal_budget()
+        amountMonth = int(((x[1] - startDate).days) / 30)
+        rest = x[0]
+        result = self.grant + self.principalDebt - self.monthlyPayment * amountMonth - rest
+        return result
+
+    def calculate_businessPlan_on_one_month(self, startMonth, minSalary, limitSalary,
+                                            payForLoan, maxGeneralExpenses):
+        endMonth = calculate_end_date_of_month(startMonth)
+        currentMaxGeneralExpenses = maxGeneralExpenses
+
+        item = [endMonth, self.expensesReserve]
+        bioCost_fries = self._find_events_in_this_period(self.fries, startMonth, endMonth)
+        item.append(bioCost_fries)
+        bioCost_feedings = self._find_events_in_this_period(self.feedings, startMonth, endMonth)
+        item.append(bioCost_feedings)
+        techCost_salaries = self._find_events_in_this_period(self.salaries, startMonth, endMonth)
+        item.append(techCost_salaries)
+        techCost_rents = self._find_events_in_this_period(self.rents, startMonth, endMonth)
+        item.append(techCost_rents)
+        techCost_electricities = self._find_events_in_this_period(self.electricities, startMonth, endMonth)
+        item.append(techCost_electricities)
+        revenue = self._find_events_in_this_period(self.revenues, startMonth, endMonth)
+
+        generalExpenses = 0
+        if (payForLoan):
+            generalExpenses += self.monthlyPayment
+        else:
+            self.monthlyPayment = 0
+
+        generalExpenses += bioCost_fries + bioCost_feedings + techCost_salaries \
+                           + techCost_rents + techCost_electricities
+
+        x = self.controller_reserves(generalExpenses, revenue, currentMaxGeneralExpenses, minSalary, limitSalary)
+        currentFamilySalary = x[0]
+        currentMaxGeneralExpenses = x[1]
+        avaliableMoney = x[2]
+
+        if (avaliableMoney > 0):
+            self.haveReservesBeenFilled = True
+        else:
+            self.haveReservesBeenFilled = False
+
+        currentBudget = self.expensesReserve + self.expansionReserve + \
+                        self.depreciationReserve + currentFamilySalary
+
+        item.append(self.monthlyPayment)
+        item.append(generalExpenses)
+        item.append(revenue)
+        item.append(currentBudget)
+        item.append(self.expensesReserve)
+        item.append(self.depreciationReserve)
+        item.append(self.expansionReserve)
+        item.append(currentFamilySalary)
+
+        # item = [конец этого месяца, средства на резерве для расходов с предыдущего месяца,
+        #         траты на малька, на корм, на зарплату, на ренту, на электричество, месячная плата по кредиту
+        #         суммарные расходы, выручка, бюджет, обновленный резерв на траты,
+        #         обновленный резерв на амортизацию, обновленный резерв на расширение, зарплата семье в этом месяце]
+        self.resultBusinessPlanEveryMonth.append(item)
+
+        return [currentMaxGeneralExpenses, avaliableMoney]
+
+    def check_calculate_businessPlan_on_one_month(self, startDate, endDate, minSalary, limitSalary):
+        startMonth = startDate
+        endMonth = calculate_end_date_of_month(startMonth)
+        self.expensesReserve = 0
+        self.depreciationReserve = (self.principalDebt + self.grant - self.costCWSD) / 2
+        self.expansionReserve = (self.principalDebt + self.grant - self.costCWSD) / 2
+        self.calculate_monthly_loan_payment()
+        currentMonth = 1
+        maxGeneralExpenses = 0
+
+        while (endMonth <= endDate):
+            if (currentMonth <= self.amountMonth):
+                payForLoan = True
+            else:
+                payForLoan = False
+
+            x = self.calculate_businessPlan_on_one_month(startMonth, minSalary,
+                                                         limitSalary, payForLoan,
+                                                         maxGeneralExpenses)
+            maxGeneralExpenses = x[0]
+            currentMonth += 1
+            startMonth = endMonth
+            endMonth = calculate_end_date_of_month(startMonth)
+
+        if (len(self.resultBusinessPlan) != len(self.resultBusinessPlanEveryMonth)):
+            print('Не совпадают размеры resultBusinessPlan и resultBusinessPlanEveryMonth')
+            print('len(self.resultBusinessPlan) = ', len(self.resultBusinessPlan),
+                  ' len(self.resultBusinessPlanEveryMonth) = ', len(self.resultBusinessPlanEveryMonth))
+            return -1
+        else:
+            for i in range(len(self.resultBusinessPlan)):
+                if (len(self.resultBusinessPlan[i]) != len(self.resultBusinessPlanEveryMonth[i])):
+                    print('Не совпадают размеры элементов resultBusinessPlan и resultBusinessPlanEveryMonth')
+                    print('i = ', i)
+                    print('len(self.resultBusinessPlan[i] = ', len(self.resultBusinessPlan[i]),
+                          ' len(self.resultBusinessPlanEveryMonth) = ', len(self.resultBusinessPlanEveryMonth[i]))
+                    return -2
+                else:
+                    for j in range(len(self.resultBusinessPlan[i])):
+                        if (self.resultBusinessPlan[i][j] != self.resultBusinessPlanEveryMonth[i][j]):
+                            print('Не совпадают ', j, ' пункт ', i, 'элемента')
+                            print('self.resultBusinessPlan[i] = ', self.resultBusinessPlan[i],
+                                  ' self.resultBusinessPlanEveryMonth[i] = ',
+                                  self.resultBusinessPlanEveryMonth[i])
+                            print('self.resultBusinessPlan[i][j] = ', self.resultBusinessPlan[i][j],
+                                  ' self.resultBusinessPlanEveryMonth[i][j] = ',
+                                  self.resultBusinessPlanEveryMonth[i][j])
+                            return -3
+        print('resultBusinessPlan и resultBusinessPlanEveryMonth совпадают)))))')
+        return 0
+
+    def change_parameteres(self, newParameters):
+        '''
+        # Все, что связано с устройством узв
+        0 - square = 0
+
+        # Все, что связано техническими расходами
+        1 - salary = 0
+        2 - amountWorkers = 0
+        3 - equipmentCapacity = 0.0
+        4 - rent = 0
+        5 - costElectricity = 0
+        6 - costCWSD = 0
+
+        # Все, что связано с биорасходами
+        7 - feedPrice = 0
+
+        # Все, что связано с резервами
+        8 - depreciationLimit = 0
+        9 - expansionLimit = 0
+
+        # Все, что связано со стартовым капиталом
+        10 - principalDebt = 0
+        11 - annualPercentage = 0.0
+        12 - amountMonth = 0
+        13 - grant = 0
+
+        # финансовая подушка
+        14 - financialCushion = 0
+        '''
+        for i in range(len(newParameters)):
+            x = newParameters[i]
+            if (x[0] == 0):
+                self.square = x[1]
+            elif (x[0] == 1):
+                self.salary = x[1]
+            elif (x[0] == 2):
+                self.amountWorkers = x[1]
+            elif (x[0] == 3):
+                self.equipmentCapacity = x[1]
+            elif (x[0] == 4):
+                self.rent = x[1]
+            elif (x[0] == 5):
+                self.costElectricity = x[1]
+            elif (x[0] == 6):
+                self.costCWSD = x[1]
+            elif (x[0] == 7):
+                self.feedPrice = x[1]
+            elif (x[0] == 8):
+                self.depreciationLimit = x[1]
+            elif (x[0] == 9):
+                self.expansionLimit = x[1]
+            elif (x[0] == 10):
+                self.principalDebt = x[1]
+            elif (x[0] == 11):
+                self.annualPercentage = x[1]
+            elif (x[0] == 12):
+                self.amountMonth = x[1]
+            elif (x[0] == 13):
+                self.grant = x[1]
+            elif (x[0] == 14):
+                self.financialCushion = x[1]
 
 
 class Business():
-    cwsds = list()
+    CWSDs = list()
     amountCWSDs = 0
-    startMasses = list()
-    totalBudget = 0
 
-    def __init__(self, startMasses):
-        self.cwsds = list()
+    totalExpantionBudget = 0
+
+    startMasses = list()
+    costLaunchingNewCWSD = 0
+    reserveForLaunchingNewCWSD = 0
+    reserveInOldCWSD = 0
+
+    def __init__(self, startMasses, costLaunchingNewCWSD, reserveForLaunchingNewCWSD, reserveInOldCWSD):
         self.startMasses = startMasses
+        self.costLaunchingNewCWSD = costLaunchingNewCWSD
+        self.reserveForLaunchingNewCWSD = reserveForLaunchingNewCWSD
+        self.reserveInOldCWSD = reserveInOldCWSD
+
+        self.CWSDs = list()
         self.amountCWSDs = 0
         self.totalBudget = 0
 
-    def addNewCWSD(self, masses, mainVolumeFish, amountModules, amountPools,
-                   poolSquare, correctionFactor, feedPrice,
-                   workerSalary, amountWorkers, cwsdCapacity,
-                   electricityCost, rent, costCWSD, depreciationReservePercent,
-                   expansionReservePercent, credit, annualPercentage, amountCreditMonth,
-                   grant, fishPrice, massCommercialFish):
-
+    def add_new_cwsd(self, mainVolume):
         self.amountCWSDs += 1
-        newCWSD = CWSD(masses, mainVolumeFish, amountModules, amountPools,
-                       poolSquare, correctionFactor, feedPrice,
-                       workerSalary, amountWorkers, cwsdCapacity,
-                       electricityCost, rent, costCWSD, depreciationReservePercent,
-                       expansionReservePercent, credit, annualPercentage, amountCreditMonth,
-                       grant, fishPrice, massCommercialFish)
-        self.cwsds.append(newCWSD)
+        newCWSD = CWSD(self.startMasses, mainVolume)
 
-    def work_cwsd(self, cwsdNumber, minMass, maxMass):
-        self.cwsds[cwsdNumber].work_cwsd_with_print(date.date.today(), date.date(2028, 1, 1), 50, 50, minMass, maxMass)
-        self.cwsds[cwsdNumber].calculate_result_business_plan(date.date.today(), date.date(2028, 1, 1), 100000)
+    
 
-    def make_business_plan(self):
-        pass
+
+
+
+
 
 
 masses = [100, 50, 30, 20]
@@ -1295,19 +1625,17 @@ cwsdCapacity = 5.5
 electricityCost = 3.17
 rent = 100000
 costCWSD = 3000000
-depreciationReservePercent = 7.5
-expansionReservePercent = 7.5
-credit = 500000
+credit = 750000
 annualPercentage = 15
-amountCreditMonth = 12
+amountCreditMonth = 36
 grant = 5000000
 feedRatio = 1.5
 
 opt = Opimization(masses, 730, amountModules, amountPools,
                   poolSquare, correctionFactor, feedPrice,
                   workerSalary, amountWorkers, cwsdCapacity,
-                  electricityCost, rent, costCWSD, depreciationReservePercent,
-                  expansionReservePercent, credit, annualPercentage, amountCreditMonth,
+                  electricityCost, rent, costCWSD,
+                  credit, annualPercentage, amountCreditMonth,
                   grant, fishPrice, massCommercialFish)
 
 optimalQuantity = opt.calculate_optimized_amount_fish_in_commercial_pool(poolSquare,
@@ -1317,14 +1645,58 @@ optimalQuantity = opt.calculate_optimized_amount_fish_in_commercial_pool(poolSqu
 mainVolumeFish = optimalQuantity[0]
 opt.mainVolumeFish = mainVolumeFish
 
+startDate = date.date.today()
+endDate = date.date(2028, 6, 1)
+reserve = 50
+deltaMass = 50
+minMass = 20
+maxMass = 250
+minSalary = 100000
+limitSalary = 200000
+'''
+opt.calculate_optimal_credit2(12, 12, 36, 500000, 50000, 1000000, 5, date.date.today(), date.date(2028, 6, 1),
+                              50, 50, minMass, maxMass, limitSalary)
+
+'''
 cwsd = CWSD(masses, mainVolumeFish, amountModules, amountPools,
             poolSquare, correctionFactor, feedPrice,
             workerSalary, amountWorkers, cwsdCapacity,
-            electricityCost, rent, costCWSD, depreciationReservePercent,
-            expansionReservePercent, credit, annualPercentage, amountCreditMonth,
+            electricityCost, rent, costCWSD,
+            credit, annualPercentage, amountCreditMonth,
             grant, fishPrice, massCommercialFish)
 
-cwsd.work_cwsd_with_print(date.date.today(), date.date(2028, 6, 1), 50, 50, 20, 250)
-cwsd.calculate_result_business_plan(date.date.today(), date.date(2028, 6, 1), 100000)
+
+cwsd.work_cwsd(startDate, endDate, reserve, deltaMass, minMass, maxMass)
+cwsd.calculate_result_business_plan(startDate, endDate, minSalary, limitSalary)
 cwsd.print_info(date.date.today())
 print(cwsd.find_minimal_budget())
+if (cwsd.howMuchIsMissing > 0):
+    print()
+    print('Мы ушли в минус на ', cwsd.howMuchIsMissing)
+else:
+    print('Все ок, мы не ушли в минус)))')
+
+cwsd.check_calculate_businessPlan_on_one_month(startDate, endDate, minSalary, limitSalary)
+
+'''
+costNewCWSD = cwsd.calculate_cost_launching_new_cwsd(date.date.today())
+reserveForLaunching = 200000
+costNewCWSD = (int (costNewCWSD / 100000)) * 100000 + reserveForLaunching
+print('Стоимость запуска нового такого же узв равна ', costNewCWSD)
+
+newCWSD = CWSD(masses, mainVolumeFish, amountModules, amountPools,
+            poolSquare, correctionFactor, feedPrice,
+            workerSalary, amountWorkers, cwsdCapacity,
+            electricityCost, rent, costCWSD,
+            0, 0, 0,
+            costNewCWSD, fishPrice, massCommercialFish)
+newCWSD.work_cwsd(date.date.today(), date.date(2028, 6, 1), 50, 50, 20, 250)
+newCWSD.calculate_result_business_plan(date.date.today(), date.date(2028, 6, 1), 100000, 200000)
+newCWSD.print_info(date.date.today())
+print(newCWSD.find_minimal_budget())
+if (newCWSD.howMuchIsMissing > 0):
+    print()
+    print('Мы ушли в минус на ', newCWSD.howMuchIsMissing)
+else:
+    print('Все ок, мы не ушли в минус)))')
+'''
