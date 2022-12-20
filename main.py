@@ -1036,7 +1036,6 @@ class CWSD():
     expansionReserve = 0
     expensesReserve = 0
     depreciationLimit = 0
-    expansionLimit = 0
 
     # Все, что связано со стартовым капиталом
     principalDebt = 0
@@ -1048,6 +1047,7 @@ class CWSD():
 
     # финансовая подушка
     financialCushion = 0
+    expansionCushion = 0
 
     # массивы с основной информацией
     feedings = list()
@@ -1069,7 +1069,7 @@ class CWSD():
                  amountWorkers=2, equipmentCapacity=5.5, costElectricity=3.17, rent=100000,
                  costCWSD=0, principalDebt=500000, annualPercentage=15.0, amountMonth=12, grant=5000000,
                  fishPrice=850, massCommercialFish=400, singleVolumeFish=100, maximumPlantingDensity=40,
-                 financialCushion=300000, depreciationLimit=2000000, expansionLimit=5000000):
+                 financialCushion=300000, depreciationLimit=2000000):
         self.amountModules = amountModules
         self.mainVolumeFish = mainVolumeFish
         self.feedPrice = feedPrice
@@ -1095,7 +1095,6 @@ class CWSD():
         self.amountMonth = amountMonth
         self.grant = grant
         self.depreciationLimit = depreciationLimit
-        self.expansionLimit = expansionLimit
 
         self.feedings = list()
         self.fries = list()
@@ -1211,16 +1210,11 @@ class CWSD():
             else:
                 self.depreciationReserve += delta
                 freeMoney -= delta
-        if (self.expansionReserve < self.expansionLimit):
-            delta = self.expansionLimit - self.expansionReserve
-            if (delta > freeMoney):
-                self.expansionReserve += freeMoney
-                freeMoney = 0.0
-            else:
-                self.expansionReserve += delta
-                freeMoney -= delta
-
-        return freeMoney
+        else:
+            delta = self.depreciationReserve - self.depreciationLimit
+            self.depreciationReserve -= delta
+            freeMoney += delta
+        self.expansionReserve += freeMoney
 
     def controller_reserves(self, expenses, revenue, maxExpenses, minSalary, limitSalary):
         resultMaxExpenses = maxExpenses
@@ -1265,7 +1259,7 @@ class CWSD():
             currentFamilySalary = x[0]
             avaliableMoney = x[1]
 
-            avaliableMoney = self._add_money_to_additional_reserves(avaliableMoney)
+            self._add_money_to_additional_reserves(avaliableMoney)
 
         # если доступных средств не хватает на покрытие максимального объема,
         # то ищем средства на других резервах
@@ -1277,7 +1271,7 @@ class CWSD():
             # т.к. в следующем месяце траты могут быть небольшими и резерва хватить
             self.expensesReserve += avaliableMoney
 
-        return [currentFamilySalary, resultMaxExpenses, avaliableMoney]
+        return [currentFamilySalary, resultMaxExpenses]
 
     def calculate_result_business_plan(self, startDate, endDate, minSalary, limitSalary):
         startMonth = startDate
@@ -1436,12 +1430,6 @@ class CWSD():
         x = self.controller_reserves(generalExpenses, revenue, currentMaxGeneralExpenses, minSalary, limitSalary)
         currentFamilySalary = x[0]
         currentMaxGeneralExpenses = x[1]
-        avaliableMoney = x[2]
-
-        if (avaliableMoney > 0):
-            self.haveReservesBeenFilled = True
-        else:
-            self.haveReservesBeenFilled = False
 
         currentBudget = self.expensesReserve + self.expansionReserve + \
                         self.depreciationReserve + currentFamilySalary
@@ -1461,7 +1449,7 @@ class CWSD():
         #         обновленный резерв на амортизацию, обновленный резерв на расширение, зарплата семье в этом месяце]
         self.resultBusinessPlanEveryMonth.append(item)
 
-        return [currentMaxGeneralExpenses, avaliableMoney]
+        return currentMaxGeneralExpenses
 
     def check_calculate_businessPlan_on_one_month(self, startDate, endDate, minSalary, limitSalary):
         startMonth = startDate
@@ -1479,10 +1467,9 @@ class CWSD():
             else:
                 payForLoan = False
 
-            x = self.calculate_businessPlan_on_one_month(startMonth, minSalary,
+            maxGeneralExpenses = self.calculate_businessPlan_on_one_month(startMonth, minSalary,
                                                          limitSalary, payForLoan,
                                                          maxGeneralExpenses)
-            maxGeneralExpenses = x[0]
             currentMonth += 1
             startMonth = endMonth
             endMonth = calculate_end_date_of_month(startMonth)
@@ -1576,38 +1563,164 @@ class CWSD():
             elif (x[0] == 14):
                 self.financialCushion = x[1]
 
+    def check_business_plan(self):
+        # item = [0 -конец этого месяца, 1 - средства на резерве для расходов с предыдущего месяца,
+        #         2 - траты на малька, 3 - на корм, 4 - на зарплату, 5 - на ренту,
+        #         6 - на электричество, 7 - месячная плата по кредиту
+        #         8 - суммарные расходы, 9 - выручка, 10 - бюджет, 11 - обновленный резерв на траты,
+        #         12 - обновленный резерв на амортизацию, 13 - обновленный резерв на расширение,
+        #         14 - зарплата семье в этом месяце]
+        lenBusinessPlan = len(self.resultBusinessPlanEveryMonth)
+        totalExpenses = self.costCWSD
+        totalRevenue = self.grant + self.principalDebt
+        totalFamilyProfit = 0
+        finalExpensesReserve = self.resultBusinessPlanEveryMonth[lenBusinessPlan - 1][11]
+        finalDepreciationReserve = self.resultBusinessPlanEveryMonth[lenBusinessPlan - 1][12]
+        finalExpansionReserve = self.resultBusinessPlanEveryMonth[lenBusinessPlan - 1][13]
+        for i in range(len(self.resultBusinessPlanEveryMonth)):
+            totalExpenses += self.resultBusinessPlanEveryMonth[i][8]
+            totalRevenue += self.resultBusinessPlanEveryMonth[i][9]
+            totalFamilyProfit += self.resultBusinessPlanEveryMonth[i][14]
+
+        print('totalExpenses = ', totalExpenses)
+        print('totalRevenue = ', totalRevenue)
+        print('totalFamilyProfit = ', totalFamilyProfit)
+        print('finalExpensesReserve = ', finalExpensesReserve)
+        print('finalDepreciationReserve = ', finalDepreciationReserve)
+        print('finalExpansionReserve = ', finalExpansionReserve)
+        print('totalRevenue - totalExpenses - totalFamilyProfit - finalExpensesReserve - finalDepreciationReserve = ',
+              totalRevenue - totalExpenses - totalFamilyProfit - finalExpensesReserve - finalDepreciationReserve)
+        if (int(totalRevenue - totalExpenses - totalFamilyProfit -
+                finalExpensesReserve - finalDepreciationReserve) == int(finalExpansionReserve)):
+            print('Дебет с кребитом сошлись)')
+
 
 class Business():
-    CWSDs = list()
-    amountCWSDs = 0
-
-    totalExpantionBudget = 0
-
+    amount_cwsd = 0
     startMasses = list()
-    costLaunchingNewCWSD = 0
-    reserveForLaunchingNewCWSD = 0
-    reserveInOldCWSD = 0
+    cwsds = list()
 
-    def __init__(self, startMasses, costLaunchingNewCWSD, reserveForLaunchingNewCWSD, reserveInOldCWSD):
+    totalExpenses = 0
+    totalRevenue = 0
+    totalExpensesReserve = 0
+    totalDepreciationReserve = 0
+    totalExpansionReserve = 0
+    totalFamilyProfit = 0
+
+    totalBusinessPlan = list()
+
+    def __init__(self, startMasses, mainVolume):
+        self.amount_cwsd = 1
         self.startMasses = startMasses
-        self.costLaunchingNewCWSD = costLaunchingNewCWSD
-        self.reserveForLaunchingNewCWSD = reserveForLaunchingNewCWSD
-        self.reserveInOldCWSD = reserveInOldCWSD
+        first_cwsd = CWSD(startMasses, mainVolume)
+        self.cwsds = list()
+        self.cwsds.append(first_cwsd)
 
-        self.CWSDs = list()
-        self.amountCWSDs = 0
-        self.totalBudget = 0
+        self.totalExpenses = first_cwsd.costCWSD
+        self.totalRevenue = first_cwsd.grant + first_cwsd.principalDebt
+        self.totalExpensesReserve = 0
+        self.totalDepreciationReserve = 0
+        self.totalExpansionReserve = 0
+        self.totalFamilyProfit = 0
 
-    def add_new_cwsd(self, mainVolume):
-        self.amountCWSDs += 1
-        newCWSD = CWSD(self.startMasses, mainVolume)
+        self.totalBusinessPlan = list()
 
-    
+    def add_new_cwsd(self, mainVolume, parameters):
+        new_cwsd = CWSD(self.startMasses, mainVolume)
+        new_cwsd.change_parameteres(parameters)
+
+        new_cwsd.expensesReserve = 0
+        new_cwsd.depreciationReserve = (new_cwsd.principalDebt + new_cwsd.grant - new_cwsd.costCWSD) / 2
+        new_cwsd.expansionReserve = (new_cwsd.principalDebt + new_cwsd.grant - new_cwsd.costCWSD) / 2
+        new_cwsd.calculate_monthly_loan_payment()
+
+        self.amount_cwsd += 1
+        self.cwsds.append(new_cwsd)
+
+    def _find_info_in_this_date(self, array, thisDate):
+        result = 0
+
+        for i in range(len(array)):
+            if (array[i][0] == thisDate):
+                result = array[i]
+
+        return result
+
+    def calculate_total_business_plan_without_goal(self, startDate, endDate, startNumberMonth, startMaxGeneralExpenses):
+        startMonth = startDate
+        endMonth = calculate_end_date_of_month(startMonth)
+        currentNumberMonth = startNumberMonth
+        currentMaxGeneralExpenses = startMaxGeneralExpenses
 
 
+        # check_calculate_businessPlan_on_one_month(self, startDate, endDate, minSalary, limitSalary)
+        while (endMonth <= endDate):
+            currentExpenses = 0
+            currentRevenue = 0
+            currentExpensesReserve = 0
+            currentDepreciationReserve = 0
+            currentExpansionReserve = 0
+            currentFamilyProfit = 0
 
+            for i in range(self.amount_cwsd):
+                if (currentNumberMonth <= self.cwsds[i].amountMonth):
+                    payForLoan = True
+                else:
+                    payForLoan = False
 
+                currentMaxGeneralExpenses = self.cwsds[i].calculate_businessPlan_on_one_month(startMonth, minSalary,
+                                                                              limitSalary, payForLoan,
+                                                                              currentMaxGeneralExpenses)
 
+                item = self._find_info_in_this_date(self.cwsds[i].resultBusinessPlanEveryMonth, endMonth)
+                # item = [0 -конец этого месяца, 1 - средства на резерве для расходов с предыдущего месяца,
+                #         2 - траты на малька, 3 - на корм, 4 - на зарплату, 5 - на ренту,
+                #         6 - на электричество, 7 - месячная плата по кредиту
+                #         8 - суммарные расходы, 9 - выручка, 10 - бюджет, 11 - обновленный резерв на траты,
+                #         12 - обновленный резерв на амортизацию, 13 - обновленный резерв на расширение,
+                #         14 - зарплата семье в этом месяце]
+                currentExpenses += item[8]
+                currentRevenue += item[9]
+                currentExpensesReserve += item[11]
+                currentDepreciationReserve += item[12]
+                currentExpansionReserve += item[13]
+                currentFamilyProfit += item[14]
+
+            self.totalExpenses += currentExpenses
+            self.totalRevenue += currentRevenue
+            self.totalExpensesReserve = currentExpensesReserve
+            self.totalDepreciationReserve = currentDepreciationReserve
+            self.totalExpansionReserve = currentExpansionReserve
+            self.totalFamilyProfit += currentFamilyProfit
+
+            currentNumberMonth += 1
+            startMonth = endMonth
+            endMonth = calculate_end_date_of_month(startMonth)
+
+    def main_script(self, startDate, endDate, reserve, deltaMass, minMass, maxMass):
+        self.cwsds[0].work_cwsd(startDate, endDate, reserve, deltaMass, minMass, maxMass)
+        self.calculate_total_business_plan_without_goal(startDate, endDate, 1, 0)
+        self.cwsds[0].check_business_plan()
+        self.print_total_info()
+
+    def print_total_info(self):
+        '''
+            self.totalExpenses += currentExpenses
+            self.totalRevenue += currentRevenue
+            self.totalExpensesReserve = currentExpensesReserve
+            self.totalDepreciationReserve = currentDepreciationReserve
+            self.totalExpansionReserve = currentExpansionReserve
+            self.totalFamilyProfit += currentFamilyProfit
+        '''
+        print()
+        print('_________________________________________________________')
+        print()
+        print('totalExpenses = ', self.totalExpenses)
+        print('totalRevenue = ', self.totalRevenue)
+        print('totalExpensesReserve = ', self.totalExpensesReserve)
+        print('totalDepreciationReserve = ', self.totalDepreciationReserve)
+        print('totalExpansionReserve = ', self.totalExpansionReserve)
+        print('totalFamilyProfit = ', self.totalFamilyProfit)
 
 
 masses = [100, 50, 30, 20]
@@ -1658,6 +1771,7 @@ opt.calculate_optimal_credit2(12, 12, 36, 500000, 50000, 1000000, 5, date.date.t
                               50, 50, minMass, maxMass, limitSalary)
 
 '''
+'''
 cwsd = CWSD(masses, mainVolumeFish, amountModules, amountPools,
             poolSquare, correctionFactor, feedPrice,
             workerSalary, amountWorkers, cwsdCapacity,
@@ -1677,7 +1791,8 @@ else:
     print('Все ок, мы не ушли в минус)))')
 
 cwsd.check_calculate_businessPlan_on_one_month(startDate, endDate, minSalary, limitSalary)
-
+cwsd.check_business_plan()
+'''
 '''
 costNewCWSD = cwsd.calculate_cost_launching_new_cwsd(date.date.today())
 reserveForLaunching = 200000
@@ -1700,3 +1815,5 @@ if (newCWSD.howMuchIsMissing > 0):
 else:
     print('Все ок, мы не ушли в минус)))')
 '''
+business = Business(masses, mainVolumeFish)
+business.main_script(startDate, endDate, reserve, deltaMass, minMass, maxMass)
