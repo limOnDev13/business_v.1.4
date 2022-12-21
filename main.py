@@ -1782,9 +1782,6 @@ class Business():
 
         return [startMonth, currentNumberMonth, currentMaxGeneralExpenses, hasGoalBeenAchieved]
 
-    def script_with_goal(self):
-        pass
-
     def main_script(self, startDate, endDate, reserve,
                     deltaMass, minMass, maxMass, costNewCWSD,
                     expansionCushion, mainVolume, minSalary, limitSalary):
@@ -1845,6 +1842,70 @@ class Business():
                                                             minSalary, limitSalary)
         else:
             print('На новое узв не успели накопить')
+
+    def _controller_reserves_when_add_new_cwsd(self, costNewCWSD, expansionCushion):
+        reserves = list()
+
+        sum = 0
+        for i in range(self.amount_cwsd):
+            reserves.append(self.cwsds[i].expansionReserve - expansionCushion)
+            sum += self.cwsds[i].expansionReserve - expansionCushion
+
+        for i in range(self.amount_cwsd):
+            x = costNewCWSD * reserves[i] / sum
+            self.cwsds[i].expansionReserve -= x
+            self.totalExpansionReserve -= x
+
+    def _script_with_goal(self, startDate, endDate, startNumberMonth, startMaxGeneralExpenses,
+                         costNewCWSD, expansionCushion, minSalary, limitSalary):
+        resultBeforeStartingNew_cwsd = self.calculate_total_business_plan_with_goal(startDate,
+                                                                                    endDate,
+                                                                                    startNumberMonth,
+                                                                                    startMaxGeneralExpenses,
+                                                                                    costNewCWSD + expansionCushion,
+                                                                                    minSalary, limitSalary)
+
+        dateBeginingSecondCWSD = resultBeforeStartingNew_cwsd[0]
+        monthBeginingSecondCWSD = resultBeforeStartingNew_cwsd[1]
+        currentMaxGeneralExpenses = resultBeforeStartingNew_cwsd[2]
+        canStartNewCWSD = resultBeforeStartingNew_cwsd[3]
+
+        return [canStartNewCWSD, dateBeginingSecondCWSD, monthBeginingSecondCWSD, currentMaxGeneralExpenses]
+
+    def main_script1(self, startDate, endDate, reserve,
+                    deltaMass, minMass, maxMass, costNewCWSD,
+                    expansionCushion, mainVolume, minSalary, limitSalary):
+        self.cwsds[0].work_cwsd(startDate, endDate, reserve, deltaMass, minMass, maxMass)
+
+        firstResult = self._script_with_goal(startDate, endDate, 1, 0,
+                                             costNewCWSD, expansionCushion, minSalary, limitSalary)
+        if (firstResult[0]):
+            # [canStartNewCWSD, dateBeginingSecondCWSD, monthBeginingSecondCWSD, currentMaxGeneralExpenses]
+            print(firstResult[1], ' ', firstResult[2],
+                  ' месяц - на РДР накопилось достаточно для запуска нового узв')
+            self._controller_reserves_when_add_new_cwsd(costNewCWSD, expansionCushion)
+            parametersNew_cwsd = [[10, 0], [11, 0], [12, 0], [13, costNewCWSD]]
+            self.add_new_cwsd(mainVolume, parametersNew_cwsd)
+            self.cwsds[1].work_cwsd(firstResult[1], endDate, reserve, deltaMass, minMass, maxMass)
+
+            secondResult = self._script_with_goal(firstResult[1], endDate, firstResult[2], firstResult[3],
+                                                 costNewCWSD, expansionCushion, minSalary, limitSalary)
+
+            if (secondResult[0]):
+                print(secondResult[1], ' ', secondResult[2],
+                      ' месяц - на РДР накопилось достаточно для запуска нового узв')
+                self._controller_reserves_when_add_new_cwsd(costNewCWSD, expansionCushion)
+                parametersNew_cwsd = [[10, 0], [11, 0], [12, 0], [13, costNewCWSD]]
+                self.add_new_cwsd(mainVolume, parametersNew_cwsd)
+                self.cwsds[2].work_cwsd(secondResult[1], endDate, reserve, deltaMass, minMass, maxMass)
+                self.calculate_total_business_plan_without_goal(secondResult[1], endDate, secondResult[2],
+                                                                secondResult[3], minSalary, limitSalary)
+            else:
+                print('Третье узв поставить не успели')
+        else:
+            print('Второе узв поставить не успели')
+
+
 
     def print_final_info(self):
         '''
@@ -2013,6 +2074,6 @@ else:
     print('Все ок, мы не ушли в минус)))')
 '''
 business = Business(masses, mainVolumeFish)
-business.main_script(startDate, endDate, reserve, deltaMass, minMass, maxMass, 4600000, 200000, mainVolumeFish,
+business.main_script1(startDate, endDate, reserve, deltaMass, minMass, maxMass, 4600000, 200000, mainVolumeFish,
                      100000, 200000)
 business.print_detailed_info()
