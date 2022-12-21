@@ -1697,10 +1697,70 @@ class Business():
             startMonth = endMonth
             endMonth = calculate_end_date_of_month(startMonth)
 
+        return [startMonth, currentNumberMonth, currentMaxGeneralExpenses]
+
+    def calculate_total_business_plan_with_goal(self, startDate, endDate,
+                                                startNumberMonth, startMaxGeneralExpenses, goalExpansion):
+        startMonth = startDate
+        endMonth = calculate_end_date_of_month(startMonth)
+        currentNumberMonth = startNumberMonth
+        currentMaxGeneralExpenses = startMaxGeneralExpenses
+
+        # check_calculate_businessPlan_on_one_month(self, startDate, endDate, minSalary, limitSalary)
+        while ((endMonth <= endDate) and (self.totalExpansionReserve < goalExpansion)):
+            currentExpenses = 0
+            currentRevenue = 0
+            currentExpensesReserve = 0
+            currentDepreciationReserve = 0
+            currentExpansionReserve = 0
+            currentFamilyProfit = 0
+
+            for i in range(self.amount_cwsd):
+                if (currentNumberMonth <= self.cwsds[i].amountMonth):
+                    payForLoan = True
+                else:
+                    payForLoan = False
+
+                currentMaxGeneralExpenses = self.cwsds[i].calculate_businessPlan_on_one_month(startMonth, minSalary,
+                                                                                              limitSalary, payForLoan,
+                                                                                              currentMaxGeneralExpenses)
+
+                item = self._find_info_in_this_date(self.cwsds[i].resultBusinessPlanEveryMonth, endMonth)
+                # item = [0 -конец этого месяца, 1 - средства на резерве для расходов с предыдущего месяца,
+                #         2 - траты на малька, 3 - на корм, 4 - на зарплату, 5 - на ренту,
+                #         6 - на электричество, 7 - месячная плата по кредиту
+                #         8 - суммарные расходы, 9 - выручка, 10 - бюджет, 11 - обновленный резерв на траты,
+                #         12 - обновленный резерв на амортизацию, 13 - обновленный резерв на расширение,
+                #         14 - зарплата семье в этом месяце]
+                currentExpenses += item[8]
+                currentRevenue += item[9]
+                currentExpensesReserve += item[11]
+                currentDepreciationReserve += item[12]
+                currentExpansionReserve += item[13]
+                currentFamilyProfit += item[14]
+
+            self.totalExpenses += currentExpenses
+            self.totalRevenue += currentRevenue
+            self.totalExpensesReserve = currentExpensesReserve
+            self.totalDepreciationReserve = currentDepreciationReserve
+            self.totalExpansionReserve = currentExpansionReserve
+            self.totalFamilyProfit += currentFamilyProfit
+
+            currentNumberMonth += 1
+            startMonth = endMonth
+            endMonth = calculate_end_date_of_month(startMonth)
+
+        if (self.totalExpansionReserve >= goalExpansion):
+            hasGoalBeenAchieved = True
+        else:
+            hasGoalBeenAchieved = False
+
+        return [startMonth, currentNumberMonth, currentMaxGeneralExpenses, hasGoalBeenAchieved]
+
     def main_script(self, startDate, endDate, reserve, deltaMass, minMass, maxMass):
         self.cwsds[0].work_cwsd(startDate, endDate, reserve, deltaMass, minMass, maxMass)
-        self.calculate_total_business_plan_without_goal(startDate, endDate, 1, 0)
-        self.cwsds[0].check_business_plan()
+        result = self.calculate_total_business_plan_with_goal(startDate, endDate, 1, 0, 4800000)
+        print(result)
         self.print_total_info()
 
     def print_total_info(self):
