@@ -1905,8 +1905,6 @@ class Business():
         else:
             print('Второе узв поставить не успели')
 
-
-
     def print_final_info(self):
         '''
             self.totalExpenses += currentExpenses
@@ -2027,7 +2025,6 @@ limitSalary = 200000
 '''
 opt.calculate_optimal_credit2(12, 12, 36, 500000, 50000, 1000000, 5, date.date.today(), date.date(2028, 6, 1),
                               50, 50, minMass, maxMass, limitSalary)
-
 '''
 '''
 cwsd = CWSD(masses, mainVolumeFish, amountModules, amountPools,
@@ -2036,8 +2033,6 @@ cwsd = CWSD(masses, mainVolumeFish, amountModules, amountPools,
             electricityCost, rent, costCWSD,
             credit, annualPercentage, amountCreditMonth,
             grant, fishPrice, massCommercialFish)
-
-
 cwsd.work_cwsd(startDate, endDate, reserve, deltaMass, minMass, maxMass)
 cwsd.calculate_result_business_plan(startDate, endDate, minSalary, limitSalary)
 cwsd.print_info(date.date.today())
@@ -2047,7 +2042,6 @@ if (cwsd.howMuchIsMissing > 0):
     print('Мы ушли в минус на ', cwsd.howMuchIsMissing)
 else:
     print('Все ок, мы не ушли в минус)))')
-
 cwsd.check_calculate_businessPlan_on_one_month(startDate, endDate, minSalary, limitSalary)
 cwsd.check_business_plan()
 '''
@@ -2056,7 +2050,6 @@ costNewCWSD = cwsd.calculate_cost_launching_new_cwsd(date.date.today())
 reserveForLaunching = 200000
 costNewCWSD = (int (costNewCWSD / 100000)) * 100000 + reserveForLaunching
 print('Стоимость запуска нового такого же узв равна ', costNewCWSD)
-
 newCWSD = CWSD(masses, mainVolumeFish, amountModules, amountPools,
             poolSquare, correctionFactor, feedPrice,
             workerSalary, amountWorkers, cwsdCapacity,
