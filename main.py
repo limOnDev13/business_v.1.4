@@ -39,10 +39,10 @@ class DistributionParameters():
         return self._gaussValues
 
 
-def assemble_array(array, amountItems, index):
+def assemble_array(array, amountItems, index, correctionFactor):
     result = (c_float * amountItems)()
     for i in range(amountItems):
-        result[i] = array[i][index]
+        result[i] = array[i][index] * correctionFactor
     return result
 
 
@@ -53,6 +53,7 @@ def calculate_end_date_of_month(startDate):
            (result.month == startDate.month)):
         result += date.timedelta(1)
     '''
+    print(startDate)
     month = startDate.month + 1
     year = startDate.year
     if (year > 2100):
@@ -129,7 +130,7 @@ class FishArray():
         self._amountFishes -= amountFishToRemove
         return removedFishes
 
-    def daily_work(self):
+    def daily_work(self, correctionFactor):
         # подготовим переменные для использования ctypes
         dailyWorkLib = self._dllBuisnessPlan.daily_work
 
@@ -138,9 +139,9 @@ class FishArray():
         dailyWorkLib.restype = c_float
 
         # соберем массивы масс и коэффициентов массонакопления
-        arrayMass = assemble_array(self._arrayFishes, self._amountFishes, 2)
+        arrayMass = assemble_array(self._arrayFishes, self._amountFishes, 2, 1)
         arrayMassAccumulationCoefficient = assemble_array(self._arrayFishes,
-                                                          self._amountFishes, 1)
+                                                          self._amountFishes, 1, correctionFactor)
 
         dailyFeedMass = dailyWorkLib(arrayMass, arrayMassAccumulationCoefficient,
                                      self._amountFishes, self._feedRatio,
@@ -151,7 +152,7 @@ class FishArray():
 
         return dailyFeedMass
 
-    def do_daily_work_some_days(self, amountDays):
+    def do_daily_work_some_days(self, amountDays, correctionFactor):
         # подготовим переменные для использования ctypes
         dailyWorkLib = self._dllBuisnessPlan.do_daily_work_some_days
 
@@ -160,9 +161,9 @@ class FishArray():
         dailyWorkLib.restype = c_float
 
         # соберем массивы масс и коэффициентов массонакопления
-        arrayMass = assemble_array(self._arrayFishes, self._amountFishes, 2)
+        arrayMass = assemble_array(self._arrayFishes, self._amountFishes, 2, 1)
         arrayMassAccumulationCoefficient = assemble_array(self._arrayFishes,
-                                                          self._amountFishes, 1)
+                                                          self._amountFishes, 1, correctionFactor)
 
         totalFeedMass = dailyWorkLib(arrayMass, arrayMassAccumulationCoefficient,
                                      self._amountFishes, self._feedRatio,
@@ -180,7 +181,7 @@ class FishArray():
         return self._arrayFishes
 
     def calculate_when_fish_will_be_sold(self, massComercialFish,
-                                         singleVolume, fishArray):
+                                         singleVolume, fishArray, correctionFactor):
         # подготовим переменные для использования ctypes
         calculateLib = self._dllBuisnessPlan.calculate_when_fish_will_be_sold
 
@@ -196,9 +197,9 @@ class FishArray():
         biomass = c_float(biomass)
 
         # соберем массивы масс и коэффициентов массонакопления
-        arrayMass = assemble_array(fishArray, amountFish, 2)
+        arrayMass = assemble_array(fishArray, amountFish, 2, 1)
         arrayMassAccumulationCoefficient = assemble_array(fishArray,
-                                                          amountFish, 1)
+                                                          amountFish, 1, correctionFactor)
 
         amountDays = calculateLib(arrayMass, arrayMassAccumulationCoefficient,
                                   amountFish, self._feedRatio,
@@ -211,7 +212,7 @@ class FishArray():
         return amountDays
 
     def calculate_difference_between_number_growth_days_and_limit_days(self, massComercialFish, singleVolume,
-                                                                       maxDensity, square):
+                                                                       maxDensity, square, correctionFactor):
         calculateLib = self._dllBuisnessPlan.calculate_how_many_fish_needs
 
         calculateLib.argtypes = [POINTER(c_float), POINTER(c_float),
@@ -222,10 +223,10 @@ class FishArray():
         calculateLib.restype = c_int
 
         # соберем массивы масс и коэффициентов массонакопления
-        arrayMass1 = assemble_array(self._arrayFishes, self._amountFishes, 2)
-        arrayMass2 = assemble_array(self._arrayFishes, self._amountFishes, 2)
+        arrayMass1 = assemble_array(self._arrayFishes, self._amountFishes, 2, 1)
+        arrayMass2 = assemble_array(self._arrayFishes, self._amountFishes, 2, 1)
         arrayMassAccumulationCoefficient = assemble_array(self._arrayFishes,
-                                                          self._amountFishes, 1)
+                                                          self._amountFishes, 1, correctionFactor)
         resultAmountsDays = (c_int * 2)(0)
 
         biomass1 = c_float(0.0)
@@ -241,6 +242,7 @@ class FishArray():
                                   singleVolume, maxDensity, square, resultAmountsDays)
 
         return [amountDays, resultAmountsDays[0], resultAmountsDays[1]]
+
     def calculate_average_mass(self):
         self.update_biomass()
         if (self._amountFishes != 0):
@@ -328,8 +330,11 @@ class Pool():
         self.arrayFryPurchases.append([date, amountFishes, averageMass, totalPrice])
         self.currentDensity = amountFishes * (averageMass / 1000) / self.square
 
-    def daily_growth(self, day, saveInfo):
-        todayFeedMass = self.arrayFishes.daily_work()
+    def daily_growth(self, day, saveInfo, durationAdaptationPeriod,
+                         minCorrectionFactor, maxCorrectionFactor, currentAmountDays):
+        currentCorrectionFactor = self._calculate_correction_factor(currentAmountDays, durationAdaptationPeriod,
+                                                                    maxCorrectionFactor, minCorrectionFactor)
+        todayFeedMass = self.arrayFishes.daily_work(currentCorrectionFactor)
         # сохраняем массы кормежек
         self.feeding.append([day, todayFeedMass])
 
@@ -372,6 +377,16 @@ class Pool():
         self.currentDensity = self.arrayFishes.get_biomass() / self.square
         return self.currentDensity
 
+    def _calculate_correction_factor(self, currentAmountDays, durationAdaptationPeriod,
+                                     maxCorrectionFactor, minCorrectionFactor):
+        k = (maxCorrectionFactor - minCorrectionFactor) / durationAdaptationPeriod
+        if (currentAmountDays < durationAdaptationPeriod):
+            result = minCorrectionFactor + k * currentAmountDays
+        else:
+            result = 1
+        return result
+
+    '''
     def calculate_difference_between_number_growth_days_and_limit_days(self, amountFishForSale):
         testFishArray = copy.deepcopy(self.arrayFishes)
         amountDays = testFishArray.calculate_difference_between_number_growth_days_and_limit_days\
@@ -380,8 +395,9 @@ class Pool():
              self.maxPlantingDensity,
              self.square)
         return amountDays
+    '''
 
-
+'''
 class Opimization():
     _dllArrayFish = 0
     _dllPool = 0
@@ -468,9 +484,9 @@ class Opimization():
             fishArray = FishArray()
             fishArray.add_biomass(date.date.today(), amountFish, currentMass)
             # соберем массивы масс и коэффициентов массонакопления
-            arrayMass = assemble_array(fishArray.get_array_fish(), amountFish, 2)
+            arrayMass = assemble_array(fishArray.get_array_fish(), amountFish, 2, 1)
             arrayMassAccumulationCoefficient = assemble_array(fishArray.get_array_fish(),
-                                                              amountFish, 1)
+                                                              amountFish, 1, 1)
 
             biomass = c_float(0.0)
             for i in range(amountFish):
@@ -632,7 +648,7 @@ class Opimization():
                           ' месяцев, т.к. в какой-то момент мы  можем уйти максимум в минус на ', maxMinus)
                 amountMonth += stepMonth
             debt += stepDebt
-
+'''
 
 class Module():
     costCWSD = 3000000
@@ -683,9 +699,11 @@ class Module():
         # теперь в новом бассейне плавает малек с индексом из предыдущего басса
         self.pools[anotherPoolNumber].indexFry = self.pools[onePoolNumber].indexFry
 
-    def total_daily_work(self, day, save_pool_info):
+    def total_daily_work(self, day, save_pool_info, durationAdaptationPeriod,
+                         minCorrectionFactor, maxCorrectionFactor, currentAmountDays):
         for i in range(self.amountPools):
-            self.pools[i].daily_growth(day, save_pool_info)
+            self.pools[i].daily_growth(day, save_pool_info, durationAdaptationPeriod,
+                         minCorrectionFactor, maxCorrectionFactor, currentAmountDays)
 
     def print_info(self):
         print()
@@ -753,7 +771,8 @@ class Module():
 
         self.move_fish_from_one_pool_to_another(overflowingPool, emptyPool, volumeFish)
 
-    def grow_up_fish_in_one_pool(self, startDay, startDateSaving):
+    def grow_up_fish_in_one_pool(self, startDay, startDateSaving, durationAdaptationPeriod,
+                                 minCorrectionFactor, maxCorrectionFactor):
         flag = True
         day = startDay
         currentDateSaving = startDateSaving
@@ -761,14 +780,40 @@ class Module():
         while (flag):
             while (currentDateSaving < day):
                 currentDateSaving = calculate_end_date_of_month(currentDateSaving)
-
             if (currentDateSaving == day):
                 needSave = True
                 currentDateSaving = calculate_end_date_of_month(currentDateSaving)
             else:
                 needSave = False
 
-            self.total_daily_work(day, needSave)
+            self.total_daily_work(day, needSave, durationAdaptationPeriod,
+                                  minCorrectionFactor, maxCorrectionFactor, (day - startDay).days)
+            day += date.timedelta(1)
+            for i in range(self.amountPools):
+                print(self.pools[i].arrayFishes.get_amount_fishes())
+                if (self.pools[i].arrayFishes.get_amount_fishes() == 0):
+                    flag = False
+                    break
+
+        return day
+
+    def grow_up_fish_in_one_pool1(self, startDay, startDateSaving, durationAdaptationPeriod,
+                                 minCorrectionFactor, maxCorrectionFactor):
+        flag = True
+        day = startDay
+        currentDateSaving = startDateSaving
+
+        while (flag):
+            while (currentDateSaving < day):
+                currentDateSaving = calculate_end_date_of_month(currentDateSaving)
+            if (currentDateSaving == day):
+                needSave = True
+                currentDateSaving = calculate_end_date_of_month(currentDateSaving)
+            else:
+                needSave = False
+
+            self.total_daily_work(day, needSave, durationAdaptationPeriod,
+                                  minCorrectionFactor, maxCorrectionFactor, (day - startDay).days)
             day += date.timedelta(1)
             for i in range(self.amountPools):
                 if (self.pools[i].arrayFishes.get_amount_fishes() == 0):
@@ -777,7 +822,9 @@ class Module():
 
         return day
 
-    def grow_up_fish_in_two_pools(self, startDay, startDateSaving):
+
+    def grow_up_fish_in_two_pools(self, startDay, startDateSaving, durationAdaptationPeriod,
+                                 minCorrectionFactor, maxCorrectionFactor):
         flag = True
         day = startDay
         currentDateSaving = startDateSaving
@@ -795,7 +842,8 @@ class Module():
             else:
                 needSave = False
 
-            self.total_daily_work(day, needSave)
+            self.total_daily_work(day, needSave, durationAdaptationPeriod,
+                                 minCorrectionFactor, maxCorrectionFactor, (startDateSaving - day).days)
             day += date.timedelta(1)
 
             amountEmptyPools = 0
@@ -808,7 +856,8 @@ class Module():
 
         return day
 
-    def start_script1(self, reserve, startDate, koef, deltaMass, minMass, maxMass, mainVolumeFish):
+    def start_script1(self, reserve, startDate, koef, deltaMass, minMass, maxMass, mainVolumeFish,
+                      durationAdaptationPeriod, minCorrectionFactor, maxCorrectionFactor):
         mainVolumeFish -= reserve
 
         for i in range(self.amountPools - 1):
@@ -821,13 +870,15 @@ class Module():
         day = startDate
 
         # вырастим рыбу в 0 бассейне
-        day = self.grow_up_fish_in_one_pool(day, startDate)
+        day = self.grow_up_fish_in_one_pool(day, startDate, durationAdaptationPeriod,
+                                 minCorrectionFactor, maxCorrectionFactor)
 
         # переместим рыбу из 3 в 0 бассейн
         self.find_pool_with_twice_volume_and_move_half_in_empty()
 
         # вырастим рыбу в 1 бассейне
-        day = self.grow_up_fish_in_one_pool(day, startDate)
+        day = self.grow_up_fish_in_one_pool(day, startDate, durationAdaptationPeriod,
+                                 minCorrectionFactor, maxCorrectionFactor)
 
         currentIndex = 4
 
@@ -836,16 +887,20 @@ class Module():
         currentIndex += 1
 
         # вырастим рыбу в 2 бассейне
-        day = self.grow_up_fish_in_one_pool(day, startDate)
+        day = self.grow_up_fish_in_one_pool(day, startDate, durationAdaptationPeriod,
+                                 minCorrectionFactor, maxCorrectionFactor)
 
         return [mainVolumeFish, day, currentIndex]
 
-    def main_script1(self, mainValue, day, previousIndex, startDateSaving, koef, deltaMass, minMass, maxMass):
+    def main_script1(self, mainValue, day, previousIndex, startDateSaving, koef,
+                     deltaMass, minMass, maxMass, durationAdaptationPeriod,
+                     minCorrectionFactor, maxCorrectionFactor):
         # переместим из переполненного бассейна в пустой половину
         self.find_pool_with_twice_volume_and_move_half_in_empty()
 
         # вырастим рыбу в 2 бассейнах
-        day = self.grow_up_fish_in_two_pools(day, startDateSaving)
+        day = self.grow_up_fish_in_two_pools(day, startDateSaving, durationAdaptationPeriod,
+                                             minCorrectionFactor, maxCorrectionFactor)
 
         currentIndex = previousIndex
         # добавим mainValue штук рыб в пустой бассейн
@@ -857,7 +912,8 @@ class Module():
         currentIndex += 1
 
         # вырастим рыбу в 2 бассейнах
-        day = self.grow_up_fish_in_two_pools(day, startDateSaving)
+        day = self.grow_up_fish_in_two_pools(day, startDateSaving, durationAdaptationPeriod,
+                                             minCorrectionFactor, maxCorrectionFactor)
 
         # переместим из переполненного бассейна в пустой
         self.find_pool_with_twice_volume_and_move_half_in_empty()
@@ -867,20 +923,25 @@ class Module():
         currentIndex += 1
 
         # вырастим рыбу в 1 бассейне
-        day = self.grow_up_fish_in_one_pool(day, startDateSaving)
+        day = self.grow_up_fish_in_one_pool(day, startDateSaving, durationAdaptationPeriod,
+                                             minCorrectionFactor, maxCorrectionFactor)
 
         return [mainValue, day, currentIndex]
 
-    def main_work1(self, startDate, endDate, reserve, deltaMass, minMass, maxMass, mainVolumeFish):
+    def main_work1(self, startDate, endDate, reserve, deltaMass, minMass, maxMass, mainVolumeFish,
+                   durationAdaptationPeriod, minCorrectionFactor, maxCorrectionFactor):
         resultStartScript = self.start_script1(reserve, startDate, self.correctionFactor,
-                                               deltaMass, minMass, maxMass, mainVolumeFish)
+                                               deltaMass, minMass, maxMass, mainVolumeFish, durationAdaptationPeriod,
+                                               minCorrectionFactor, maxCorrectionFactor)
 
         day = resultStartScript[1]
         # [mainVolumeFish, day, currentIndex]
         resultMainScript = self.main_script1(resultStartScript[0],
                                              resultStartScript[1],
                                              resultStartScript[2],
-                                             startDate, self.correctionFactor, deltaMass, minMass, maxMass)
+                                             startDate, self.correctionFactor, deltaMass, minMass, maxMass,
+                                             durationAdaptationPeriod,
+                                             minCorrectionFactor, maxCorrectionFactor)
 
         numberMainScript = 2
         while (day < endDate):
@@ -889,9 +950,12 @@ class Module():
             resultMainScript = self.main_script1(resultMainScript[0],
                                                  resultMainScript[1],
                                                  resultMainScript[2],
-                                                 startDate, self.correctionFactor, deltaMass, minMass, maxMass)
+                                                 startDate, self.correctionFactor, deltaMass, minMass, maxMass,
+                                                 durationAdaptationPeriod,
+                                                 minCorrectionFactor, maxCorrectionFactor)
             day = resultMainScript[1]
 
+    '''
     def start_script_with_print(self, reserve, startDate, koef, deltaMass, minMass, maxMass, mainVolumeFish):
         mainVolumeFish -= reserve
         print('Оптимальное количество мальков в 1 бассейн: ', mainVolumeFish)
@@ -1011,6 +1075,7 @@ class Module():
                                                  resultMainScript[2],
                                                  startDate, self.correctionFactor, deltaMass, minMass, maxMass)
             day = resultMainScript[1]
+    '''
 
 
 class CWSD():
@@ -1047,6 +1112,11 @@ class CWSD():
 
     # финансовая подушка
     financialCushion = 0
+
+    # все, что связано с периодом адаптации нового узв
+    durationAdaptationPeriod = 60
+    minCorrectionFactor = 0.5
+    maxCorrectionFactor = 1.0
 
     # массивы с основной информацией
     feedings = list()
@@ -1133,16 +1203,20 @@ class CWSD():
 
     def work_cwsd(self, startDate, endDate, reserve, deltaMass, minMass, maxMass):
         for i in range(self.amountModules):
-            self.modules[i].main_work1(startDate, endDate, reserve, deltaMass, minMass, maxMass, self.mainVolumeFish)
+            self.modules[i].main_work1(startDate, endDate, reserve, deltaMass, minMass, maxMass, self.mainVolumeFish,
+                                       self.durationAdaptationPeriod, self.minCorrectionFactor,
+                                       self.maxCorrectionFactor)
 
         self._calculate_all_casts_and_profits_for_all_period(startDate, endDate)
 
+    '''
     def work_cwsd_with_print(self, startDate, endDate, reserve, deltaMass, minMass, maxMass):
         for i in range(self.amountModules):
             self.modules[i].main_work_with_print(startDate, endDate, reserve,
                                                  deltaMass, minMass, maxMass, self.mainVolumeFish)
 
         self._calculate_all_casts_and_profits_for_all_period(startDate, endDate)
+    '''
 
     def _find_events_in_this_period(self, array, startPeriod, endPeriod):
         result = 0
@@ -1905,8 +1979,6 @@ class Business():
         else:
             print('Второе узв поставить не успели')
 
-
-
     def print_final_info(self):
         '''
             self.totalExpenses += currentExpenses
@@ -2001,7 +2073,7 @@ annualPercentage = 15
 amountCreditMonth = 36
 grant = 5000000
 feedRatio = 1.5
-
+'''
 opt = Opimization(masses, 730, amountModules, amountPools,
                   poolSquare, correctionFactor, feedPrice,
                   workerSalary, amountWorkers, cwsdCapacity,
@@ -2015,6 +2087,8 @@ optimalQuantity = opt.calculate_optimized_amount_fish_in_commercial_pool(poolSqu
                                                                          10, 10)
 mainVolumeFish = optimalQuantity[0]
 opt.mainVolumeFish = mainVolumeFish
+'''
+mainVolumeFish = 850
 
 startDate = date.date.today()
 endDate = date.date(startDate.year + 5, startDate.month, startDate.day)
